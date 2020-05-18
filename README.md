@@ -28,7 +28,11 @@ Ability to parse and roll:
 -Re-roll rolls which fall above or below a certain value such as "5d6r2b3". (Roll five six-sided dice re-roll up to two dice which roll below three). (TODO)
 
 __Intended Rolling functionality:__
--Accommodate c
+Accomodate:
+
+-Single rolls of a DiceBag.
+-Multiple rolls of a DiceBag.
+-Building of a probability distribution from multiple rolls of a DiceBag.
 
 __Maybe Intended Features:__
 Abilit to parse "explosive" dice such as "1d20!" (on a twenty, roll an extra dice).
