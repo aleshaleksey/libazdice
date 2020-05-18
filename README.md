@@ -15,6 +15,7 @@ __Intended Dice Features:__
 -API for rolling a "DiceBag" once or more, or creating a probability distribution.
 
 __Intended Parsing Features:__
+
 Ability to parse and roll:
 
 -Accommodate for any virtual dice size with a whole number of size.
@@ -28,6 +29,7 @@ Ability to parse and roll:
 -Re-roll rolls which fall above or below a certain value such as "5d6r2b3". (Roll five six-sided dice re-roll up to two dice which roll below three). (TODO)
 
 __Intended Rolling functionality:__
+
 Accomodate:
 
 -Single rolls of a DiceBag.
@@ -35,9 +37,11 @@ Accomodate:
 -Building of a probability distribution from multiple rolls of a DiceBag.
 
 __Maybe Intended Features:__
+
 Abilit to parse "explosive" dice such as "1d20!" (on a twenty, roll an extra dice).
 
 __TODO__
+
 -Ability to re-roll above or below a given value.
 
 -"Explosive" dice.
