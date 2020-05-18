@@ -5,4 +5,4 @@ authors = ["Alek Zholobenko <aleshaleksey>"]
 edition = "2018"
 
 [dependencies]
-libazdice = { path = "../lib-azdice" }
+libazdice = { path = ".." }

@@ -29,7 +29,7 @@ impl DiceOp {
     }
 }
 
-/// A structure represenuse crate::distribution::rand::Rng;ting dice.
+/// A structure representing the drop clause on a set of dice duch as the "dl4" on "6d6dl4".
 #[derive(Debug,Clone,PartialEq)]
 pub(crate) enum Drop {
     Non,
