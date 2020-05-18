@@ -6,6 +6,7 @@ This library is meant to be the new dice "engine" for AZDice once it is "finishe
 
 Current status: Builds with `cargo 1.43.0 (2cbe9048e 2020-05-03)`
 
+
 __Intended Dice Features:__
 
 -Parser for dice strings eg. "1d100+5d20dl3-4" (Mostly done).
@@ -13,6 +14,7 @@ __Intended Dice Features:__
 -API for creating "DiceBag"s via functions. (Needs to be externalised).
 
 -API for rolling a "DiceBag" once or more, or creating a probability distribution.
+
 
 __Intended Parsing Features:__
 
@@ -28,17 +30,22 @@ Ability to parse and roll:
 
 -Re-roll rolls which fall above or below a certain value such as "5d6r2b3". (Roll five six-sided dice re-roll up to two dice which roll below three). (TODO)
 
+
 __Intended Rolling functionality:__
 
 Accomodate:
 
 -Single rolls of a DiceBag.
+
 -Multiple rolls of a DiceBag.
+
 -Building of a probability distribution from multiple rolls of a DiceBag.
+
 
 __Maybe Intended Features:__
 
-Abilit to parse "explosive" dice such as "1d20!" (on a twenty, roll an extra dice).
+Ability to parse "explosive" dice such as "1d20!" (on a twenty, roll an extra dice).
+
 
 __TODO__
 
