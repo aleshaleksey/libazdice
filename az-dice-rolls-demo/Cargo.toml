@@ -1,0 +1,8 @@
+[package]
+name = "mindice-rolls"
+version = "0.1.0"
+authors = ["Alek Zholobenko <aleshaleksey>"]
+edition = "2018"
+
+[dependencies]
+libazdice = { path = "../lib-azdice" }

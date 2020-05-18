@@ -1,0 +1,17 @@
+[package]
+name = "libazdice"
+version = "0.1.0"
+authors = ["alesha <aleshaleksey>"]
+edition = "2018"
+
+[lib]
+name = "libazdice"
+path = "src/lib.rs"
+crate-type = ["lib"]
+test = true
+bench = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.7"
