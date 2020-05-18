@@ -21,6 +21,8 @@ fn single_parse_inner(size:i64) {
                 size: size,
                 count: 1,
                 drop: Drop::Non,
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
                 op: DiceOp::Add,
             }
     )]);
@@ -40,6 +42,8 @@ fn simple_parse_inner(count:usize,size:i64) {
                 size: size,
                 count: count,
                 drop: Drop::Non,
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
                 op: DiceOp::Add,
             }
     )]);
@@ -62,6 +66,8 @@ fn parse_5d20dl3() {
                 size: 20,
                 count: 5,
                 drop: Drop::Lowest(3),
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
                 op: DiceOp::Add,
             }
     )]);
@@ -84,6 +90,8 @@ fn parse_5d20dh3() {
                 size: 20,
                 count: 5,
                 drop: Drop::Highest(3),
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
                 op: DiceOp::Add,
             }
     )]);
@@ -106,6 +114,8 @@ fn parse_12d20dl4dh3() {
                 size: 20,
                 count: 12,
                 drop: Drop::Custom(vec![3,4,5,6,7]),
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
                 op: DiceOp::Add,
             }
     )]);
@@ -125,6 +135,8 @@ fn parse_7d23_plus_11() {
                 size: 23,
                 count: 7,
                 drop: Drop::Non,
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
                 op: DiceOp::Add,
             }),
             DiceGroup::Bonus(Bonus {
@@ -148,6 +160,8 @@ fn parse_7d23_minus_11() {
                 size: 23,
                 count: 7,
                 drop: Drop::Non,
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
                 op: DiceOp::Add,
             }),
             DiceGroup::Bonus(Bonus {
@@ -189,6 +203,8 @@ fn parse_5d6_minus_10d10() {
                     size: 6,
                     count: 5,
                     drop: Drop::Non,
+                    cutoff: CutOff::Non,
+                    reroll: ReRoll::Never,
                     op: DiceOp::Add,
                 }),
             DiceGroup::Dice(
@@ -196,6 +212,8 @@ fn parse_5d6_minus_10d10() {
                     size: 10,
                     count: 10,
                     drop: Drop::Non,
+                    cutoff: CutOff::Non,
+                    reroll: ReRoll::Never,
                     op: DiceOp::Sub,
                 }),
     ]);
