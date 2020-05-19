@@ -1,6 +1,34 @@
 use super::distribution::*;
 use std::result::Result;
 
+/// An important piece of shorthand.
+const CANT: &str = "Can't parse, won't parse!";
+
+/// an enum to store various parsing groups dynamically.
+#[derive(Debug,Clone,PartialEq)]
+enum ModifierGroup {    // The number is just there as demo.
+    DropLowest(usize),  // dl2
+    KeepHighest(usize), // kh2
+    DropHighest(usize), // dh2
+    KeepLowest(usize),  // kl2
+    ReRollCount(usize), // rr4
+    ReRollAbove(i64),   // ab2
+    ReRollBelow(i64),   // be2
+    CutOffMaximum(i64), // mx5
+    CutOffMinimum(i64), // mn2
+}
+
+// A bunch of constants to define additional modifiers.
+const DL: &str = "dl";  // DropLowest (KeepHighest)
+const KH: &str = "kh";  // KeepHighest
+const DH: &str = "dh";  // DropHighest
+const KL: &str = "kl";  // KeepLowest (DropLowest)
+const RR: &str = "rr";  // ReRoll
+const AB: &str = "ab";  // Above
+const BE: &str = "be";  // Below
+const MX: &str = "mx";  // MaximumOf
+const MN: &str = "mn";  // MinimumOf
+
 // The logic of the parser is to consecutively split the string:
 // 1) Split by operation to make dicegroups.
 
@@ -21,11 +49,9 @@ pub fn parse(input:String) -> Result<DiceBag,String> {
         }
     }
 
-
-
     // Parse to dice.
     let parsed_groups = map_ops(input)?;
-
+    println!("finished mapping.");
 
     // Convert to dicebag.
     let mut dice_bag = DiceBag::from_dice(parsed_groups);
@@ -42,155 +68,375 @@ pub(crate) fn map_ops(input:String) -> Result<Vec<DiceGroup>,String> {
 
     let groups = input.split(|c| (c=='+')||(c=='-'));
     if groups.clone().count()==0 {
+        // A little parsing on the side.
         return Result::Err("Input contains no valid dice groups.".to_owned());
     }
     let mut output = Vec::with_capacity(groups.clone().count());
     for (op,group) in ops.zip(groups) {
-        let mut dice_group = parse_string_to_dicegroup(group)?;
+        let mut dice_group = parse_string_to_dicegroup2(group)?;
+        println!("parsed to dicegroup!");
         dice_group.add_op(op);
+        println!("added op.");
         output.push(dice_group);
     }
-
     Ok(output)
 }
 
-pub(crate) fn parse_string_to_dicegroup(input:&str) -> Result<DiceGroup,String> {
-    // This is a bad way of doing this.
-    let count_drop_lowest = input.matches("dl").count() + input.matches("kh").count();
-    let count_drop_highest = input.matches("dh").count() + input.matches("kl").count();
+// REWORKING OF PARSING STRATEGY:
+// 1) Check that numeric only: Then it becomes a bonus.
+// 2) Check for d followed by numeric. If failed, then we don't want it.
+// 2.5) Check for last character being exclamation maek (not implemented!) and remove it.
+// 3) Take until first non 'd' non numeric.
+// 3.5) Parse first section.
+// 4) Split by two letter groups.
+// 4.5) Check for undesired groups and for possibility of parsing in between values.
+// 5) Parse various clauses.
 
-    // Sanity check for drop clauses. Simplifies code in inner.
-    let dice = if count_drop_lowest > 1 || count_drop_highest > 1 {
-        return Result::Err(
-            "A dicegroup cannot have more than one drop lowest and one drop highest clause!".to_owned()
-        );
-    } else {
-        // Parse the hopefully valid dice group.
-        // Errors still possible, but the code should exclude most silliness.
-        parse_to_dice_group_inner(input)?
-    };
-
-
-    Ok(dice)
-}
-
-/// This function assumes a single drop highest and/or a single Drop highest clause.
-fn parse_to_dice_group_inner(input:&str) -> Result<DiceGroup,String> {
-    let mut chars = input.chars().peekable();
-
-    let mut accumulator = String::new();
-    let mut substrings = Vec::new();
-    let mut droppings = Vec::new();
-    while let Some(c) =  chars.next() {
-        let c2 = chars.peek();
-
-        if (c=='d') && (c2==Some(&'l')) {
-            droppings.push("dl");
-            substrings.push(accumulator.clone());
-            accumulator.clear();
-        } else if (c=='k') && (c2==Some(&'h')) {
-            droppings.push("kh");
-            substrings.push(accumulator.clone());
-            accumulator.clear();
-        } else if (c=='d') && (c2==Some(&'h')) {
-            droppings.push("dh");
-            substrings.push(accumulator.clone());
-            accumulator.clear();
-        } else if (c=='k') && (c2==Some(&'l')) {
-            droppings.push("kl");
-            substrings.push(accumulator.clone());
-            accumulator.clear();
-        }
-
-        let do_not = (c2==Some(&'l')) || (c2==Some(&'h'));
-        if c.is_numeric() || ((c=='d') && !do_not) {
-            accumulator.push(c);
-        }
-    }
-    substrings.push(accumulator);
-
-    // SAN checks please!
-    if substrings.is_empty() {
-        return Result::Err("Empty Dice group detected! Can't parse, won't parse!".to_owned());
-    } else if substrings.len() - 1 != droppings.len() {
-        println!("Substrings: {:?}", substrings);
-        println!("drops: {:?}", droppings);
-        return Result::Err(format!("({}) is not a valid dice group.",input));
-    }
-
-    let remainder = substrings.remove(0).to_owned();
-
-    let mut dice = parse_base_dice(remainder)?;
-
-    match dice {
-        DiceGroup::Dice(_) if droppings.is_empty() => Ok(dice),
-        DiceGroup::Bonus(_) if droppings.is_empty() => Ok(dice),
-        DiceGroup::Dice(ref mut d) if droppings.len() < 3 => {
-            let mut final_drop_groups = Vec::new();
-            for drop in droppings {
-                // Parse count
-                let count:usize = match substrings.pop().expect("We checked").parse() {
-                    Ok(n) => n,
-                    Err(e) => return Result::Err(format!("Could not parse drop count: {:?}",e)),
-                };
-                //Sanity check
-                if count >= d.count {
-                    return Result::Err(
-                        "Dropping all the dice in a group or more. This is silly".to_owned()
-                    );
-                }
-                let final_drop = if drop == "kh" {
-                    Drop::lowest(d.count - count)
-                } else if drop == "dl" {
-                    Drop::lowest(count)
-                } else if drop == "kl" {
-                    Drop::highest(d.count - count)
-                } else if drop == "dh" {
-                    Drop::highest(count)
-                } else {
-                    unreachable!("Impossible drop!")
-                };
-                final_drop_groups.push(final_drop);
-            }
-
-            let first_drop = final_drop_groups.pop().expect("We checked.");
-
-            // If only one drop we can add it and return the dicegroup.
-            // else we continue.
-            let second_drop = if let Some(drop) = final_drop_groups.pop() {
-                drop
-            }else{
-                d.add_drop(first_drop);
-                return Ok(dice);
-            };
-
-            let final_drop = match (first_drop,second_drop) {
-                (Drop::Lowest(l),Drop::Highest(h))|(Drop::Highest(h),Drop::Lowest(l)) => {
-                    let range = (l..(d.count-h)).collect::<Vec<usize>>();
-                    Drop::custom(range)
-                }
-                _ => return Result::Err(
-                    "Two identical drop clauses. Can't parse! Won't parse!".to_owned()
-                ),
-            };
-            d.add_drop(final_drop);
-            Ok(dice)
-        }
-        _ => Result::Err(
-                "Incompatible drop groups found in dice group. Can't parse! Won't parse!".to_owned()
-            ),
-    }
-}
-
-fn parse_base_dice(base_group: String) -> Result<DiceGroup,String> {
-    // If we have a singular number parse as a bonus.
-    if !base_group.contains('d') {
-        return match base_group.parse::<i64>() {
+fn parse_string_to_dicegroup2(input:&str) -> Result<DiceGroup,String> {
+    // Check for pure number. Then we have a bonus.
+    let input = input.to_owned();
+    if !input.contains(|c:char| !c.is_numeric()) {
+        return match input.parse::<i64>() {
             Ok(n) => Ok(DiceGroup::bonus(n)),
             Err(e) => Result::Err(format!("Could not parse dice: {:?}",e)),
         };
     }
 
+    // If we do not have a bonus, we must have a dice. If we do not have "dX", we have a poo.
+    if !has_d_numeric(&input) {
+        return Err(format!(
+            "Dice group ({}) is neither dice nor bonus. Can't parse! Won't parse!",
+            input,
+        ));
+    }
+
+    let (base_group, remainder) = take_until_nx(input, 2, &is_letter);
+    println!("bg: {}, rem: {}",base_group, remainder);
+    let mut base_dice = parse_base_dice2(base_group)?;
+
+    if let Some(c) = remainder.chars().next() {
+        // If the first character aint a letter, something's wrong. Very, very wrong.
+        if !is_letter(c) {
+            return Err(format!("Modifiers must start with a letter but start with ({}). {}",c, CANT));
+        }else if let DiceGroup::Bonus(_) = base_dice {
+            return Err(format!("A bonus must not have modifiers! {}", CANT));
+        }
+    } else {
+        // If remainder is empty then we have no modifiers.
+        return Ok(base_dice);
+    }
+
+    if let DiceGroup::Dice(ref mut dice) = base_dice {
+        parse_conditional_clauses(remainder, dice)?;
+    }
+    Ok(base_dice)
+}
+
+/// A function which deals with the tail group eg "dl6dh3rr3be3mn2"
+/// Strategy:
+/// Split the group into letter and number groups. Zip and decode each one.
+fn parse_conditional_clauses(
+    input:String,
+    base_dice: &mut Dice
+) -> Result<(), String> {
+    let mut list_cond: Vec<String> = Vec::new();
+    let mut list_num: Vec<String> = Vec::new();
+
+    let mut input2 = input;
+    while !input2.is_empty() {
+        // Letters stage.
+        let (in_l, rem) = take_until_nx(input2, 1, &is_numeric);
+        println!("in_l:{},rem:{}",in_l,rem);
+        list_cond.push(in_l);
+        if rem.is_empty() { break; }
+        // Numbers stage.
+        let (in2, rem) = take_until_nx(rem, 2, &is_letter);
+        println!("in2:{},rem:{}",in2,rem);
+        list_num.push(in2);
+        input2 = rem;
+    }
+    println!("list num: {:?}",list_num);
+    println!("list cond: {:?}", list_cond);
+    // SAN check.
+    if list_cond.len() != list_num.len() {
+        return Err(format!("We've got a really weird input string! {}", CANT));
+    }
+
+    // A little parsing on the side.
+    let list_num = list_num.into_iter();
+
+    // Now we try to parse.
+    let mut groups = Vec::with_capacity(list_cond.len());
+    for (num, cond) in list_num.zip(list_cond.into_iter()) {
+        groups.push(make_group(num, cond)?);
+    }
+    // Finalise the dice
+    fill_dice(groups, base_dice)
+}
+
+/// Turn splits into groups.
+/// Errors can come from `num` failing to parse, or `cond` being invalid.
+fn make_group(num: String, cond: String) -> Result<ModifierGroup, String> {
+    // Nothing should be below 0.
+    let n = num.parse::<usize>().map_err(|e| e.to_string())?;
+
+    let group = match cond.as_str() {
+         DL => ModifierGroup::DropLowest(n),
+         KH => ModifierGroup::KeepHighest(n),
+         KL => ModifierGroup::KeepLowest(n),
+         DH => ModifierGroup::DropHighest(n),
+         RR => ModifierGroup::ReRollCount(n),
+         AB => ModifierGroup::ReRollAbove(n as i64),
+         BE => ModifierGroup::ReRollBelow(n as i64),
+         MX => ModifierGroup::CutOffMaximum(n as i64),
+         MN => ModifierGroup::CutOffMinimum(n as i64),
+         _  => return Err(format!("({}{}) not a valid modifier. {}", cond, n, CANT)),
+    };
+    Ok(group)
+}
+
+/// Finalises a dice group based on the `ModifierGroups`. Groups to add.
+/// 1) `Reroll` clause,
+/// 2) `CutOff` clause,
+/// 3) `Drop` clause.
+fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
+    use self::ModifierGroup::*;
+    // Make Drop.
+    {
+        let mut drop_highest = Drop::Non;
+        let mut drop_lowest = Drop::Non;
+        let mut had_lowest = false;
+        let mut had_highest = false;
+        'drop_loop: for mod_group in mods.iter() {
+            match mod_group {
+                DropLowest(n) => {
+                    if had_lowest { return Err(format!("Multiple (dl/kh) clauses found! {}!", CANT)); }
+                    had_lowest = true;
+                    if die.count <= *n {
+                        return Err(format!("Keeping more dice than you have({} vs {})! {}!", n, die.count, CANT));
+                    }
+                    drop_lowest = Drop::Lowest(*n);
+                }
+                KeepHighest(n) => {
+                    if had_lowest { return Err(format!("Multiple (dl/kh) clauses found! {}!", CANT)); }
+                    had_lowest = true;
+                    if die.count <= *n {
+                        return Err(format!("Keeping more dice than you have({} vs {})! {}!", n, die.count, CANT));
+                    }
+                    drop_lowest = Drop::Lowest(die.count - *n);
+                }
+                DropHighest(n) => {
+                    if had_highest { return Err(format!("Multiple (dh/kl) clauses found! {}!", CANT)); }
+                    had_highest = true;
+                    if die.count <= *n {
+                        return Err(format!("Keeping more dice than you have({} vs {})! {}!", n, die.count, CANT));
+                    }
+                    drop_highest = Drop::Highest(*n);
+                }
+                KeepLowest(n) => {
+                    if had_highest { return Err(format!("Multiple (dh/kl) clauses found! {}!", CANT)); }
+                    had_highest = true;
+                    if die.count <= *n {
+                        return Err(format!("Keeping more dice than you have({} vs {})! {}!", n, die.count, CANT));
+                    }
+                    drop_highest = Drop::Highest(die.count - *n);
+                }
+                _ => continue 'drop_loop,
+            }
+            // We must keep cycling to the end to make sure that we do not have contradictory clauses.
+        }
+
+        match (drop_highest, drop_lowest) {
+            (Drop::Non, Drop::Non) => die.add_drop(Drop::non()),
+            (Drop::Non, Drop::Lowest(n)) => die.add_drop(Drop::lowest(n)),
+            (Drop::Highest(n), Drop::Non) => die.add_drop(Drop::highest(n)),
+            (Drop::Highest(n), Drop::Lowest(m)) => {
+                if m + n >= die.count {
+                    return Err(format!("Dropping more dice than you have({} vs {})! {}!", n + m, die.count, CANT));
+                }
+                let drop_vector = ((m-1)..(die.count - n - 1)).collect::<Vec<_>>();
+                die.add_drop(Drop::custom(drop_vector));
+            },
+            _ => return Err("Impossible drop combo. How'd you do it?".to_owned()),
+        }
+    }
+
+    // Make ReRoll
+    {
+        let mut count = None;
+        let mut ex_threshold = None;
+        let mut above = false;
+        'reroll_loop: for mod_group in mods.iter() {
+            match mod_group {
+                ModifierGroup::ReRollCount(n) => {
+                    if count.is_none() {
+                        if die.count < *n {
+                            return Err(format!("Re-rolling more dice than you have({} vs {})! {}!", n, die.count, CANT));
+                        }
+                        count = Some(*n);
+                    } else {
+                        return Err(format!("Multiple reroll counts found! {}", CANT));
+                    }
+                }
+                ModifierGroup::ReRollAbove(x) => {
+                    above = true;
+                    if ex_threshold.is_none() {
+                        if die.size <= *x {
+                            return Err(format!("Re-rolling more dice than you have({} vs {})! {}!", x, die.size, CANT));
+                        }
+                        ex_threshold = Some(*x);
+                    } else {
+                        return Err(format!("Multiple reroll conditions found! {}", CANT));
+                    }
+                }
+                ModifierGroup::ReRollBelow(x) => {
+                    if ex_threshold.is_none() {
+                        if 1 >= *x {
+                            return Err(format!("Re-rolling more dice than you have({} vs {})! {}!", x, die.count, CANT));
+                        }
+                        ex_threshold = Some(*x);
+                    } else {
+                        return Err(format!("Multiple reroll conditions found! {}", CANT));
+                    }
+                }
+                _ => continue 'reroll_loop,
+            }
+            // We must keep cycling to the end to make sure there is only one of each.
+        }
+
+        match (count, ex_threshold) {
+            (None, Some(_))|(Some(_), None) => {
+                return Err(format!("Incomplete reroll clause: {}", CANT));
+            }
+            (Some(n), Some(x)) => if above {
+                die.add_reroll_if_above(x, n);
+            } else {
+                die.add_reroll_if_below(x, n);
+            },
+            _ => {}
+        }
+    }
+
+    // Make CutOff
+    {
+        let mut got = false;
+        let mut cutoff = CutOff::Non;
+        'cutoff_loop: for mod_group in mods.iter() {
+            match mod_group {
+                ModifierGroup::CutOffMaximum(x) => {
+                    if got { return Err(format!("Multiple cutoff clauses found! {}!", CANT)); }
+                    got = true;
+                    if (die.size <= *x) || (*x < 1) {
+                        return Err(format!("Cut-off Maximum is ridiculous ({} for a d{}). {}.",x, die.size, CANT));
+                    }
+                    cutoff = CutOff::Maximum(*x);
+                }
+                ModifierGroup::CutOffMinimum(x) => {
+                    if got { return Err(format!("Multiple cutoff clauses found! {}!", CANT)); }
+                    got = true;
+                    if (die.size < *x) || (*x <= 1) {
+                        return Err(format!("Cut-off Minimum is ridiculous ({} for a d{}). {}.",x, die.size, CANT));
+                    }
+                    cutoff = CutOff::Minimum(*x);
+                }
+                _ => continue 'cutoff_loop,
+            }
+        }
+        die.add_checked_cutoff(cutoff);
+    }
+    Ok(())
+}
+
+/// Needs to be done because rust is typed and I am not clever.
+fn is_letter(c:char) -> bool {
+    c.is_alphabetic() && !c.is_numeric()
+}
+
+/// Needs to be done because rust is typed and I am not clever.
+fn is_numeric(c:char) -> bool {
+    c.is_numeric()
+}
+
+/// A nom-like function to split a string when N chars meet a certain condition.
+/// NB: This is a copy function. Also it is not quite good.
+fn take_until_nx(input:String, n:usize, fullfills_condition: &dyn Fn(char)->bool) -> (String,String) {
+    let input = input.chars().collect::<Vec<char>>();
+
+    let mut base_group = String::new();
+    let mut tail = String::new();
+
+    // Fill out the basae group, and inevitably start on tail.
+    let mut tail_start = 0;
+    let mut over = false;
+
+    if input.len() < n {
+        return (input.iter().collect::<String>(), tail);
+    } else if n==1 {
+        println!("n=1");
+        let mut start_tail = input.len();
+        for i in 0..input.len() {
+            if !fullfills_condition(input[i]) {
+                base_group.push(input[i]);
+            } else {
+                start_tail = i;
+                break;
+            }
+        }
+        for i in start_tail..input.len() {
+            tail.push(input[i]);
+        }
+        return (base_group, tail);
+    }
+    // First part.
+    'outer: for i in 0..(input.len()-n) {
+        let mut done = true;
+        'inner: for j in 0..n {
+            if !fullfills_condition(input[i+j]) {
+                done = false;
+                break 'inner;
+            }
+        }
+        if done {
+            over = true;
+            tail_start = i;
+            break 'outer;
+        } else {
+            base_group.push(input[i]);
+        }
+    }
+
+    // Second part
+    if !over {
+        for i in (input.len()-n)..input.len() {
+            base_group.push(input[i]);
+        }
+        tail_start = input.len();
+    }
+
+    // Fill out the tail
+    for i in tail_start..input.len() {
+        tail.push(input[i]);
+    }
+    (base_group, tail)
+}
+
+/// A nom-like non-macro function. Checks for "dX". If has then is a dice.
+fn has_d_numeric(checked: &str) -> bool {
+    let mut chars = checked.chars().peekable();
+
+    // The fact that the string might be longer is irrelevant. We are using `Option`.
+    while let Some(c1) = chars.next() {
+        if let Some(c2) = chars.peek() {
+            if (c1=='d') && c2.is_numeric() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// NB: Must not be a bonus. Must be "dX" or "YdX".
+fn parse_base_dice2(base_group: String) -> Result<DiceGroup,String> {
     // If we have a `d` (eg `2d6`), try to parse it as such.
     let splits = base_group.split('d').collect::<Vec<_>>();
     if splits.len() != 2 {
@@ -229,7 +475,7 @@ fn char_to_op(char:char) -> Option<DiceOp> {
 
 fn valid_chars(c:char) -> bool {
     match c {
-        '+'|'-'|'d'|'l'|'k'|'h' => true,
+        '+'|'-'|'d'|'l'|'k'|'h'|'r'|'b'|'e'|'a'|'m'|'!'|'n' => true,
         c => c.is_numeric(),
     }
 }

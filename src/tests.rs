@@ -122,6 +122,54 @@ fn parse_12d20dl4dh3() {
 }
 
 #[test]
+fn parse_15d20dl4dh3rr3be4() {
+    let input = "15d20dl4dh3rr3be4".to_owned();
+    let input2 = "15d20kh11kl12rr3be4".to_owned();
+
+    let dice_bag = parse::parse(input).expect("should parse");
+    let dice_bag2 = parse::parse(input2).expect("should parse");
+
+    assert_eq!(dice_bag,dice_bag2);
+    assert_eq!(dice_bag.range,MinMax([8,160]));
+    assert_eq!(
+        dice_bag.dice,
+        vec![DiceGroup::Dice(
+            Dice {
+                size: 20,
+                count: 15,
+                drop: Drop::Custom(vec![3,4,5,6,7,8,9,10]),
+                cutoff: CutOff::Non,
+                reroll: ReRoll::IfBelow(ReRollType{ count: 3, ex_threshold: 4, }),
+                op: DiceOp::Add,
+            }
+    )]);
+}
+
+#[test]
+fn parse_15d20dl4dh3rr3ab4mn2() {
+    let input = "15d20dl4dh3rr3ab4mn2".to_owned();
+    let input2 = "15d20kh11kl12rr3ab4mn2".to_owned();
+
+    let dice_bag = parse::parse(input).expect("should parse");
+    let dice_bag2 = parse::parse(input2).expect("should parse");
+
+    assert_eq!(dice_bag,dice_bag2);
+    assert_eq!(dice_bag.range,MinMax([8,160]));
+    assert_eq!(
+        dice_bag.dice,
+        vec![DiceGroup::Dice(
+            Dice {
+                size: 20,
+                count: 15,
+                drop: Drop::Custom(vec![3,4,5,6,7,8,9,10]),
+                cutoff: CutOff::Minimum(2),
+                reroll: ReRoll::IfAbove(ReRollType{ count: 3, ex_threshold: 4, }),
+                op: DiceOp::Add,
+            }
+    )]);
+}
+
+#[test]
 fn parse_7d23_plus_11() {
     let input = "7d23 + 11".to_owned();
 

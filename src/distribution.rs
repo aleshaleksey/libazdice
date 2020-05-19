@@ -63,13 +63,14 @@ impl CutOff {
 #[derive(Debug,Clone,Copy,PartialEq)]
 pub(crate) struct ReRollType {
     /// Number of dice to reroll.
-    count: usize,
+    pub(crate) count: usize,
     /// Exclusive condition for reroll `roll < x` or `roll > x`.
-    ex_threshold: i64,
+    pub(crate) ex_threshold: i64,
 }
 
 /// A condiitonal clause for rerolling dice.
-/// This is supposed to accomodate syntax such as "6d6rr4b2".
+/// This is supposed to accomodate syntax such as "6d6rr4be2".
+/// "be" codes for below, "ab" codes for "above".
 #[derive(Debug,Clone,Copy,PartialEq)]
 pub(crate) enum ReRoll {
     Never,
@@ -103,7 +104,7 @@ impl ReRoll {
 
 impl Drop {
     /// Creates a new blank instance of `Drop`
-    pub(crate) fn all() -> Drop {
+    pub(crate) fn non() -> Drop {
         Drop::Non
     }
 
@@ -175,13 +176,18 @@ impl Dice {
         self.reroll = ReRoll::if_below(threshold, count);
     }
 
-    pub(crate) fn add_minimum_roll(&mut self, min: i64) -> Result<(), String> {
+    /// Add a prechecked cutoff.
+    pub(crate) fn add_checked_cutoff(&mut self, cutoff: CutOff) {
+        self.cutoff = cutoff;
+    }
+
+    pub fn add_minimum_roll(&mut self, min: i64) -> Result<(), String> {
         if min > self.size { return Err("Minimum cutoff is bigger than dice sidedness!".to_owned()); }
         self.cutoff = CutOff::Minimum(min);
         Ok(())
     }
 
-    pub(crate) fn add_maximum_roll(&mut self, max: i64) -> Result<(), String> {
+    pub fn add_maximum_roll(&mut self, max: i64) -> Result<(), String> {
         if max < 1 { return Err("Maximum cutoff is less than one!".to_owned()); }
         self.cutoff = CutOff::Minimum(max);
         Ok(())
