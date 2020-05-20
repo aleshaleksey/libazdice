@@ -1,6 +1,8 @@
 [package]
 name = "mindice-distributions"
-version = "0.1.0"
+# Version 0.2.0 uses a dice-result structure
+# which is incompatible with 0.1.0
+version = "0.2.0"
 authors = ["Alek Zholobenko <aleshaleksey>"]
 edition = "2018"
 

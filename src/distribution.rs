@@ -46,6 +46,7 @@ pub(crate) enum CutOff {
     Non,
     Minimum(i64),
     Maximum(i64),
+    Both(MinMax),
 }
 
 impl CutOff {
@@ -54,6 +55,13 @@ impl CutOff {
         match self {
             CutOff::Minimum(n) => if *val < *n {*val = *n; },
             CutOff::Maximum(n) => if *val > *n {*val = *n; },
+            CutOff::Both(MinMax([mn, mx])) => {
+                if *val > *mx {
+                    *val = *mx;
+                } else if *val < *mn {
+                    *val = *mn
+                }
+            }
             _ => {}
         }
     }
@@ -133,6 +141,7 @@ pub struct Dice {
     pub(crate) reroll: ReRoll,
     pub(crate) cutoff: CutOff,
     pub(crate) op: DiceOp,
+    pub(crate) explosive: bool,
 }
 
 impl Dice {
@@ -150,6 +159,7 @@ impl Dice {
             reroll: ReRoll::new(),
             cutoff: CutOff::Non,
             op: DiceOp::Add,
+            explosive: false,
         }
     }
 
@@ -161,6 +171,7 @@ impl Dice {
             reroll: ReRoll::new(),
             cutoff: CutOff::Non,
             op: DiceOp::Add,
+            explosive: false,
         }
     }
 
@@ -339,6 +350,82 @@ impl DiceGroup {
             }
         }
     }
+
+    /// Add whether explosive or not.
+    pub(crate) fn is_explosive(&mut self, x: bool) {
+        match self {
+            DiceGroup::Dice(ref mut d) => d.explosive = x,
+            _ => {},
+        }
+    }
+}
+
+#[derive(Debug,Clone,PartialEq)]
+pub struct DiceResult {
+    dice: Dice,
+    results: Vec<i64>,
+    total: i64,
+}
+
+#[derive(Debug,Clone,PartialEq)]
+pub struct BonusResult {
+    boni: Vec<i64>,
+    total: i64,
+}
+
+impl BonusResult {
+    /// Create an empty total of boni.
+    fn new() -> Self {
+        BonusResult {
+            boni: Vec::new(),
+            total: 0,
+        }
+    }
+}
+
+impl DiceResult {
+    /// NB, the total is calculated within the function.
+    fn new(dice: &Dice, results: Vec<i64>) -> Self {
+        let dice = dice.to_owned();
+        let total = dice.op.operate(0, results.iter().fold(0,|acc,x| acc + x));
+        DiceResult { dice, results, total, }
+    }
+}
+
+#[derive(Debug,Clone,PartialEq)]
+pub struct RollResults {
+    dice_groups: Vec<DiceResult>,
+    bonus: BonusResult,
+    total: i64,
+}
+
+impl RollResults {
+    /// Make a new, empty instance of results.
+    fn new_empty() -> Self {
+        RollResults {
+            dice_groups: Vec::new(),
+            bonus: BonusResult::new(),
+            total: 0,
+        }
+    }
+
+    /// Add the roll result from the roll of a `Dice`.
+    fn add_dice_result(&mut self, dice: DiceResult) {
+        self.total+= dice.total;
+        self.dice_groups.push(dice);
+    }
+
+    /// Add to bonus. NB: The +/- from `DiceOp` is calculated in the function.
+    fn add_to_bonus(&mut self, b: &Bonus) {
+        let Bonus {bonus, op, } = b;
+        self.bonus.total+= op.operate(self.bonus.total, *bonus);
+        self.bonus.boni.push(*bonus);
+    }
+
+    /// Get your own total.
+    pub fn total(&self) -> i64 {
+        self.total
+    }
 }
 
 #[derive(Debug,Clone,PartialEq)]
@@ -368,16 +455,26 @@ impl DiceBag {
     }
 
     /// Roll the dicebag.
-    pub fn roll(&self) -> i64 {
+    pub fn roll(&self) -> RollResults {
         // NB: Will need serious reworking for multiplication and division.
-        self.dice.iter().fold(0, |acc, x| {
+        let mut final_result = RollResults::new_empty();
+        for x in self.dice.iter() {
             match x {
-                &DiceGroup::Bonus(Bonus { bonus, op } ) => op.operate(acc, bonus),
-                &DiceGroup::Dice(Dice { size, count, ref drop, ref reroll, ref cutoff, op } ) => {
+                &DiceGroup::Bonus(ref b) => final_result.add_to_bonus(b),
+                &DiceGroup::Dice(ref d) => {
+
+                    let Dice { size, count, ref drop, ref reroll, ref cutoff, op: _, explosive } = d;
                     // Roll all the dice.
-                    let mut answer = std::iter::repeat(0).take(count).map(|_| {
-                        rand::thread_rng().gen_range(1,size+1)
-                    }).collect::<Vec<_>>();
+                    let mut answer = std::iter::repeat(0).take(*count).map(|_| {
+                        let mut result = Vec::new();
+                        if !explosive {
+                            let roll = rand::thread_rng().gen_range(1,size+1);
+                            result.push(roll);
+                        }else{
+                            explode(&mut result,* size);
+                        }
+                        result
+                    }).flatten().collect::<Vec<_>>();
 
                     // Deal with the reroll clause.
                     let mut reroll_count = 0;
@@ -433,11 +530,11 @@ impl DiceBag {
                         _ => answer
                     };
 
-                    // Spit out an answer.
-                    op.operate(acc, answer.iter().fold(0,|acc,x| acc + x))
+                    final_result.add_dice_result(DiceResult::new(&d, answer));
                 }
             }
-        })
+        }
+        final_result
     }
 
     /// Get the range in a format which is useful.
@@ -459,11 +556,11 @@ impl DiceBag {
         let mut range = self.get_range_as_btreemap();
         for _ in 0..roll_count {
             let roll = self.roll();
-            if let Some (c) = range.get_mut(&roll) {
+            if let Some (c) = range.get_mut(&roll.total) {
                 *c+= 1;
             }else{
                 // This is excessive in this codebase, but just in case.
-                range.insert(roll,1);
+                range.insert(roll.total,1);
             }
         }
         range
@@ -475,4 +572,11 @@ impl DiceBag {
             (i,c as f64/roll_count as f64 * 100.0)
         }).collect::<BTreeMap<i64,f64>>()
     }
+}
+
+/// A function to make explosive dice explode
+fn explode(vec: &mut Vec<i64>, max: i64) {
+    let roll = rand::thread_rng().gen_range(1,max+1);
+    vec.push(roll);
+    if vec.last()==Some(&max) { explode(vec, max); }
 }

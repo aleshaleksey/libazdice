@@ -27,6 +27,6 @@ fn main() {
             }
         };
 
-        println!("You rolled {}, and got {}.\n",input,dice_bag.roll());
+        println!("You rolled {}, and got {}.\n",input,dice_bag.roll().total());
     }
 }

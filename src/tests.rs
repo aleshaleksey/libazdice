@@ -24,6 +24,7 @@ fn single_parse_inner(size:i64) {
                 cutoff: CutOff::Non,
                 reroll: ReRoll::Never,
                 op: DiceOp::Add,
+                explosive: false,
             }
     )]);
 }
@@ -45,6 +46,7 @@ fn simple_parse_inner(count:usize,size:i64) {
                 cutoff: CutOff::Non,
                 reroll: ReRoll::Never,
                 op: DiceOp::Add,
+                explosive: false,
             }
     )]);
 }
@@ -69,6 +71,7 @@ fn parse_5d20dl3() {
                 cutoff: CutOff::Non,
                 reroll: ReRoll::Never,
                 op: DiceOp::Add,
+                explosive: false,
             }
     )]);
 }
@@ -93,6 +96,7 @@ fn parse_5d20dh3() {
                 cutoff: CutOff::Non,
                 reroll: ReRoll::Never,
                 op: DiceOp::Add,
+                explosive: false,
             }
     )]);
 }
@@ -117,6 +121,7 @@ fn parse_12d20dl4dh3() {
                 cutoff: CutOff::Non,
                 reroll: ReRoll::Never,
                 op: DiceOp::Add,
+                explosive: false,
             }
     )]);
 }
@@ -141,6 +146,7 @@ fn parse_15d20dl4dh3rr3be4() {
                 cutoff: CutOff::Non,
                 reroll: ReRoll::IfBelow(ReRollType{ count: 3, ex_threshold: 4, }),
                 op: DiceOp::Add,
+                explosive: false,
             }
     )]);
 }
@@ -165,8 +171,83 @@ fn parse_15d20dl4dh3rr3ab4mn2() {
                 cutoff: CutOff::Minimum(2),
                 reroll: ReRoll::IfAbove(ReRollType{ count: 3, ex_threshold: 4, }),
                 op: DiceOp::Add,
+                explosive: false,
             }
     )]);
+}
+
+#[test]
+fn parse_15d20dl4dh3rr3ab4mn2mx18() {
+    let input = "15d20dl4dh3rr3ab4mn2mx18".to_owned();
+    let input2 = "15d20kh11kl12rr3ab4mn2mx18".to_owned();
+
+    let dice_bag = parse::parse(input).expect("should parse");
+    let dice_bag2 = parse::parse(input2).expect("should parse");
+
+    assert_eq!(dice_bag,dice_bag2);
+    assert_eq!(dice_bag.range,MinMax([8,160]));
+    assert_eq!(
+        dice_bag.dice,
+        vec![DiceGroup::Dice(
+            Dice {
+                size: 20,
+                count: 15,
+                drop: Drop::Custom(vec![3,4,5,6,7,8,9,10]),
+                cutoff: CutOff::Both(MinMax([2,18])),
+                reroll: ReRoll::IfAbove(ReRollType{ count: 3, ex_threshold: 4, }),
+                op: DiceOp::Add,
+                explosive: false,
+            }
+    )]);
+}
+
+#[test]
+fn parse_15d20dl4dh3rr3ab4mn15mx5() {
+    let input = "15d20dl4dh3rr3ab4mn15mx5".to_owned();
+    let input2 = "15d20kh11kl12rr3ab4mn15mx5".to_owned();
+
+    let dice_bag = parse::parse(input);
+    let dice_bag2 = parse::parse(input2);
+
+    assert_eq!(dice_bag,dice_bag2);
+    assert!(dice_bag.is_err());
+}
+
+#[test]
+fn parse_15d20dl4dh3rr3ab4mn2_explosive() {
+    let input = "15d20dl4dh3rr3ab4mn2!".to_owned();
+    let input2 = "15d20kh11kl12rr3ab4mn2!".to_owned();
+
+    let dice_bag = parse::parse(input).expect("should parse");
+    let dice_bag2 = parse::parse(input2).expect("should parse");
+
+    assert_eq!(dice_bag,dice_bag2);
+    assert_eq!(dice_bag.range,MinMax([8,160]));
+    assert_eq!(
+        dice_bag.dice,
+        vec![DiceGroup::Dice(
+            Dice {
+                size: 20,
+                count: 15,
+                drop: Drop::Custom(vec![3,4,5,6,7,8,9,10]),
+                cutoff: CutOff::Minimum(2),
+                reroll: ReRoll::IfAbove(ReRollType{ count: 3, ex_threshold: 4, }),
+                op: DiceOp::Add,
+                explosive: true,
+            }
+    )]);
+}
+
+#[test]
+fn parse_15d20dl4dh3rr3ab4mn2_explosive_fail() {
+    let input = "15d20dl4dh3rr3ab4!mn2".to_owned();
+    let input2 = "15d20kh11kl12rr3ab4!mn2".to_owned();
+
+    let dice_bag = parse::parse(input);
+    let dice_bag2 = parse::parse(input2);
+
+    assert_eq!(dice_bag, dice_bag2);
+    assert!(dice_bag.is_err());
 }
 
 #[test]
@@ -186,12 +267,48 @@ fn parse_7d23_plus_11() {
                 cutoff: CutOff::Non,
                 reroll: ReRoll::Never,
                 op: DiceOp::Add,
+                explosive: false,
             }),
             DiceGroup::Bonus(Bonus {
                 bonus: 11,
                 op: DiceOp::Add,
             }),
     ]);
+}
+
+#[test]
+fn parse_7d23_explosive_plus_11() {
+    let input = "7d23! + 11".to_owned();
+
+    let dice_bag = parse::parse(input).expect("should parse");
+
+    assert_eq!(dice_bag.range,MinMax([18,172]));
+    assert_eq!(
+        dice_bag.dice,
+        vec![DiceGroup::Dice(
+            Dice {
+                size: 23,
+                count: 7,
+                drop: Drop::Non,
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
+                op: DiceOp::Add,
+                explosive: true,
+            }),
+            DiceGroup::Bonus(Bonus {
+                bonus: 11,
+                op: DiceOp::Add,
+            }),
+    ]);
+}
+
+#[test]
+fn parse_7d23_explosive_plus_11_fail() {
+    let input = "!7d23 + 11".to_owned();
+
+    let dice_bag = parse::parse(input);
+
+    assert!(dice_bag.is_err());
 }
 
 #[test]
@@ -211,6 +328,7 @@ fn parse_7d23_minus_11() {
                 cutoff: CutOff::Non,
                 reroll: ReRoll::Never,
                 op: DiceOp::Add,
+                explosive: false,
             }),
             DiceGroup::Bonus(Bonus {
                 bonus: 11,
@@ -254,6 +372,7 @@ fn parse_5d6_minus_10d10() {
                     cutoff: CutOff::Non,
                     reroll: ReRoll::Never,
                     op: DiceOp::Add,
+                    explosive: false,
                 }),
             DiceGroup::Dice(
                 Dice {
@@ -263,8 +382,48 @@ fn parse_5d6_minus_10d10() {
                     cutoff: CutOff::Non,
                     reroll: ReRoll::Never,
                     op: DiceOp::Sub,
+                    explosive: false,
                 }),
     ]);
+}
+
+#[test]
+fn parse_5d6_minus_10d10_explosive() {
+    let input = "5d6 - 10d10!".to_owned();
+
+    let dice_bag = parse::parse(input).expect("should parse");
+
+    assert_eq!(dice_bag.range,MinMax([-70,-5]));
+    assert_eq!(
+        dice_bag.dice,
+        vec![DiceGroup::Dice(
+                Dice {
+                    size: 6,
+                    count: 5,
+                    drop: Drop::Non,
+                    cutoff: CutOff::Non,
+                    reroll: ReRoll::Never,
+                    op: DiceOp::Add,
+                    explosive: false,
+                }),
+            DiceGroup::Dice(
+                Dice {
+                    size: 10,
+                    count: 10,
+                    drop: Drop::Non,
+                    cutoff: CutOff::Non,
+                    reroll: ReRoll::Never,
+                    op: DiceOp::Sub,
+                    explosive: true,
+                }),
+    ]);
+}
+
+#[test]
+fn parse_5d6_minus_10d10_explosive_fail() {
+    let input = "5d6 - 10!d10".to_owned();
+
+    assert!(parse::parse(input).is_err());
 }
 
 #[test]

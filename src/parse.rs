@@ -50,8 +50,7 @@ pub fn parse(input:String) -> Result<DiceBag,String> {
     }
 
     // Parse to dice.
-    let parsed_groups = map_ops(input)?;
-    println!("finished mapping.");
+    let parsed_groups = map_ops_and_parse(input)?;
 
     // Convert to dicebag.
     let mut dice_bag = DiceBag::from_dice(parsed_groups);
@@ -61,7 +60,7 @@ pub fn parse(input:String) -> Result<DiceBag,String> {
 }
 
 /// Splits a whitespaceless String into ops.
-pub(crate) fn map_ops(input:String) -> Result<Vec<DiceGroup>,String> {
+pub(crate) fn map_ops_and_parse(input:String) -> Result<Vec<DiceGroup>,String> {
     let ops = std::iter::repeat(DiceOp::Add).take(1).chain(
         input.chars().filter_map(|c|char_to_op(c))
     );
@@ -74,9 +73,7 @@ pub(crate) fn map_ops(input:String) -> Result<Vec<DiceGroup>,String> {
     let mut output = Vec::with_capacity(groups.clone().count());
     for (op,group) in ops.zip(groups) {
         let mut dice_group = parse_string_to_dicegroup2(group)?;
-        println!("parsed to dicegroup!");
         dice_group.add_op(op);
-        println!("added op.");
         output.push(dice_group);
     }
     Ok(output)
@@ -94,7 +91,7 @@ pub(crate) fn map_ops(input:String) -> Result<Vec<DiceGroup>,String> {
 
 fn parse_string_to_dicegroup2(input:&str) -> Result<DiceGroup,String> {
     // Check for pure number. Then we have a bonus.
-    let input = input.to_owned();
+    let mut input = input.to_owned();
     if !input.contains(|c:char| !c.is_numeric()) {
         return match input.parse::<i64>() {
             Ok(n) => Ok(DiceGroup::bonus(n)),
@@ -110,9 +107,16 @@ fn parse_string_to_dicegroup2(input:&str) -> Result<DiceGroup,String> {
         ));
     }
 
+    let explosive = if input.chars().last()==Some('!') {
+        input.pop();
+        true
+    }else{
+        false
+    };
+
     let (base_group, remainder) = take_until_nx(input, 2, &is_letter);
-    println!("bg: {}, rem: {}",base_group, remainder);
     let mut base_dice = parse_base_dice2(base_group)?;
+    base_dice.is_explosive(explosive);
 
     if let Some(c) = remainder.chars().next() {
         // If the first character aint a letter, something's wrong. Very, very wrong.
@@ -146,17 +150,13 @@ fn parse_conditional_clauses(
     while !input2.is_empty() {
         // Letters stage.
         let (in_l, rem) = take_until_nx(input2, 1, &is_numeric);
-        println!("in_l:{},rem:{}",in_l,rem);
         list_cond.push(in_l);
         if rem.is_empty() { break; }
         // Numbers stage.
         let (in2, rem) = take_until_nx(rem, 2, &is_letter);
-        println!("in2:{},rem:{}",in2,rem);
         list_num.push(in2);
         input2 = rem;
     }
-    println!("list num: {:?}",list_num);
-    println!("list cond: {:?}", list_cond);
     // SAN check.
     if list_cond.len() != list_num.len() {
         return Err(format!("We've got a really weird input string! {}", CANT));
@@ -319,29 +319,41 @@ fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
 
     // Make CutOff
     {
-        let mut got = false;
-        let mut cutoff = CutOff::Non;
+        let mut cutoff_min = CutOff::Non;
+        let mut cutoff_max = CutOff::Non;
         'cutoff_loop: for mod_group in mods.iter() {
             match mod_group {
                 ModifierGroup::CutOffMaximum(x) => {
-                    if got { return Err(format!("Multiple cutoff clauses found! {}!", CANT)); }
-                    got = true;
+                    if cutoff_max != CutOff::Non { return Err(format!("Multiple cutoff clauses found! {}!", CANT)); }
                     if (die.size <= *x) || (*x < 1) {
                         return Err(format!("Cut-off Maximum is ridiculous ({} for a d{}). {}.",x, die.size, CANT));
                     }
-                    cutoff = CutOff::Maximum(*x);
+                    cutoff_max = CutOff::Maximum(*x);
                 }
                 ModifierGroup::CutOffMinimum(x) => {
-                    if got { return Err(format!("Multiple cutoff clauses found! {}!", CANT)); }
-                    got = true;
+                    if cutoff_min != CutOff::Non { return Err(format!("Multiple cutoff clauses found! {}!", CANT)); }
                     if (die.size < *x) || (*x <= 1) {
                         return Err(format!("Cut-off Minimum is ridiculous ({} for a d{}). {}.",x, die.size, CANT));
                     }
-                    cutoff = CutOff::Minimum(*x);
+                    cutoff_min = CutOff::Minimum(*x);
                 }
                 _ => continue 'cutoff_loop,
             }
         }
+        let cutoff = match (cutoff_min, cutoff_max) {
+                (CutOff::Non, CutOff::Non) => CutOff::Non,
+                (CutOff::Minimum(x), CutOff::Non) => CutOff::Minimum(x),
+                (CutOff::Non, CutOff::Maximum(x)) => CutOff::Maximum(x),
+                (CutOff::Minimum(x), CutOff::Maximum(y)) => {
+                    if x > y {
+                        return Err(format!("Maximum is bigger than minimum. {}!", CANT));
+                    } else {
+                        CutOff::Both(MinMax([x, y]))
+                    }
+                }
+                _ => return Err(format!("MinMax Error! {}!", CANT)),
+        };
+
         die.add_checked_cutoff(cutoff);
     }
     Ok(())
@@ -372,7 +384,6 @@ fn take_until_nx(input:String, n:usize, fullfills_condition: &dyn Fn(char)->bool
     if input.len() < n {
         return (input.iter().collect::<String>(), tail);
     } else if n==1 {
-        println!("n=1");
         let mut start_tail = input.len();
         for i in 0..input.len() {
             if !fullfills_condition(input[i]) {
@@ -475,7 +486,7 @@ fn char_to_op(char:char) -> Option<DiceOp> {
 
 fn valid_chars(c:char) -> bool {
     match c {
-        '+'|'-'|'d'|'l'|'k'|'h'|'r'|'b'|'e'|'a'|'m'|'!'|'n' => true,
+        '+'|'-'|'d'|'l'|'k'|'x'|'h'|'r'|'b'|'e'|'a'|'m'|'!'|'n' => true,
         c => c.is_numeric(),
     }
 }
