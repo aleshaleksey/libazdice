@@ -254,7 +254,7 @@ fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
                 if m + n >= die.count {
                     return Err(format!("Dropping more dice than you have({} vs {})! {}!", n + m, die.count, CANT));
                 }
-                let drop_vector = ((m-1)..(die.count - n - 1)).collect::<Vec<_>>();
+                let drop_vector = ((m)..(die.count - n)).collect::<Vec<_>>();
                 die.add_drop(Drop::custom(drop_vector));
             },
             _ => return Err("Impossible drop combo. How'd you do it?".to_owned()),

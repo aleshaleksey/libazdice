@@ -52,6 +52,31 @@ fn simple_parse_inner(count:usize,size:i64) {
 }
 
 #[test]
+fn parse_3d20dl1dh1() {
+    let input = "3d20dl1dh1".to_owned();
+    let input2 = "3d20kh2kl2".to_owned();
+
+    let dice_bag = parse::parse(input).expect("should parse");
+    let dice_bag2 = parse::parse(input2).expect("should parse");
+
+    assert_eq!(dice_bag,dice_bag2);
+    assert_eq!(dice_bag.range,MinMax([1,20]));
+    assert_eq!(
+        dice_bag.dice,
+        vec![DiceGroup::Dice(
+            Dice {
+                size: 20,
+                count: 3,
+                drop: Drop::Custom(vec![1]),
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
+                op: DiceOp::Add,
+                explosive: false,
+            }
+    )]);
+}
+
+#[test]
 fn parse_5d20dl3() {
     let input = "5d20dl3".to_owned();
     let input2 = "5d20kh2".to_owned();
@@ -117,7 +142,7 @@ fn parse_12d20dl4dh3() {
             Dice {
                 size: 20,
                 count: 12,
-                drop: Drop::Custom(vec![3,4,5,6,7]),
+                drop: Drop::Custom(vec![4,5,6,7,8]),
                 cutoff: CutOff::Non,
                 reroll: ReRoll::Never,
                 op: DiceOp::Add,
@@ -142,7 +167,7 @@ fn parse_15d20dl4dh3rr3be4() {
             Dice {
                 size: 20,
                 count: 15,
-                drop: Drop::Custom(vec![3,4,5,6,7,8,9,10]),
+                drop: Drop::Custom(vec![4,5,6,7,8,9,10,11]),
                 cutoff: CutOff::Non,
                 reroll: ReRoll::IfBelow(ReRollType{ count: 3, ex_threshold: 4, }),
                 op: DiceOp::Add,
@@ -167,7 +192,7 @@ fn parse_15d20dl4dh3rr3ab4mn2() {
             Dice {
                 size: 20,
                 count: 15,
-                drop: Drop::Custom(vec![3,4,5,6,7,8,9,10]),
+                drop: Drop::Custom(vec![4,5,6,7,8,9,10,11]),
                 cutoff: CutOff::Minimum(2),
                 reroll: ReRoll::IfAbove(ReRollType{ count: 3, ex_threshold: 4, }),
                 op: DiceOp::Add,
@@ -192,7 +217,7 @@ fn parse_15d20dl4dh3rr3ab4mn2mx18() {
             Dice {
                 size: 20,
                 count: 15,
-                drop: Drop::Custom(vec![3,4,5,6,7,8,9,10]),
+                drop: Drop::Custom(vec![4,5,6,7,8,9,10,11]),
                 cutoff: CutOff::Both(MinMax([2,18])),
                 reroll: ReRoll::IfAbove(ReRollType{ count: 3, ex_threshold: 4, }),
                 op: DiceOp::Add,
@@ -229,7 +254,7 @@ fn parse_15d20dl4dh3rr3ab4mn2_explosive() {
             Dice {
                 size: 20,
                 count: 15,
-                drop: Drop::Custom(vec![3,4,5,6,7,8,9,10]),
+                drop: Drop::Custom(vec![4,5,6,7,8,9,10,11]),
                 cutoff: CutOff::Minimum(2),
                 reroll: ReRoll::IfAbove(ReRollType{ count: 3, ex_threshold: 4, }),
                 op: DiceOp::Add,
