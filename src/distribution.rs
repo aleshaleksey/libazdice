@@ -418,7 +418,9 @@ impl RollResults {
     /// Add to bonus. NB: The +/- from `DiceOp` is calculated in the function.
     fn add_to_bonus(&mut self, b: &Bonus) {
         let Bonus {bonus, op, } = b;
-        self.bonus.total+= op.operate(self.bonus.total, *bonus);
+        let sub_total = op.operate(self.bonus.total, *bonus);
+        self.bonus.total+= sub_total;
+        self.total+= sub_total;
         self.bonus.boni.push(*bonus);
     }
 
