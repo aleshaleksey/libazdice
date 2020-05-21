@@ -537,11 +537,15 @@ impl DiceBag {
         final_result
     }
 
+    pub fn get_range(&self) -> [i64; 2] {
+        let MinMax(range) = self.range;
+        range
+    }
+
     /// Get the range in a format which is useful.
     pub fn get_range_as_list(&self) -> Vec<i64> {
         let MinMax([min,max]) = self.range;
         (min..max).collect::<Vec<_>>()
-
     }
 
     /// Used for building frequency distributions from multiple rolls.
