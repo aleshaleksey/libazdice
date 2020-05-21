@@ -537,6 +537,7 @@ impl DiceBag {
         final_result
     }
 
+    /// A function to get a range as `[i64; 2]` (basically a minimum and maximum value).
     pub fn get_range(&self) -> [i64; 2] {
         let MinMax(range) = self.range;
         range
