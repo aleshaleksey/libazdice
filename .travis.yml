@@ -11,7 +11,7 @@ git:
   depth: 1
 rust:
   - 1.43.0
-name: "azdice-conrod"
+name: "libazdice"
 before_script:
 - cargo update
 script:
