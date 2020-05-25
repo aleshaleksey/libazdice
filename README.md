@@ -1,4 +1,4 @@
-# libazdice[<img src="https://api.travis-ci.org/aleshaleksey/libazdic.svg?branch=master">](https://travis-ci.org/aleshaleksey/libazdice)
+# libazdice[<img src="https://api.travis-ci.org/aleshaleksey/libazdice.svg?branch=master">](https://travis-ci.org/aleshaleksey/libazdice)
 A fairly light-weight dice rolling library for use in "AZDice" and similar dice rollers and distribution simulators.
 
 This document is a placeholder. It will be updated and clarified at the earliest opportunity.
