@@ -41,9 +41,9 @@ int main(int argc, char** argv)
     uint64_t l = strlen(input);
     uint64_t n = 50;
 
-    // Load the sensibly named "libazdice.so".
+    // Load the sensibly named "liblibazdice.so". Gosh what a naming sense!
     void *lib;
-    lib = dlopen("../target/release/libazdice.so",RTLD_LAZY);
+    lib = dlopen("../target/release/liblibazdice.so",RTLD_LAZY);
 
     if (lib != NULL) {
         // Initialise the function pointers.

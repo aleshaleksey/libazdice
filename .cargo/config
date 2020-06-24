@@ -1,0 +1,2 @@
+[alias]
+small-release = ["rustc","--release","--","-C","link-args=-s"]

@@ -50,8 +50,11 @@ pub struct SingleRollResult {
 #[no_mangle]
 /// A wrapper for parsing a string and returning a lot of rolls all at once.
 /// As arguments it takes
+///
 /// `input`: the equivalent of C `char *`, (a string of bytes).
+///
 /// `l`; the byte length of `input`.
+///
 /// `n`: The number of rolls required.
 ///
 /// NB: This function is fairly dangerous as it can fail if the input from C/C++ cannot be
@@ -123,6 +126,7 @@ pub unsafe extern "C" fn parse_and_roll_n_times(
 #[no_mangle]
 /// A wrapper for parsing a string and returning the results of a single roll.
 /// As arguments it takes
+///
 /// `input`: the equivalent of C `char *`, (a string of bytes).
 ///
 /// NB: This function is fairly dangerous as it can fail if the input from C/C++ cannot be
@@ -163,6 +167,7 @@ pub unsafe extern "C" fn parse_and_roll(input: &*const c_char) -> SingleRollResu
 #[no_mangle]
 /// A wrapper for parsing a string and returning the results of a single roll.
 /// As arguments it takes
+///
 /// `input`: the equivalent of C `char *`, (a string of bytes).
 ///
 /// NB: This function is fairly dangerous as it can fail if the input from C/C++ cannot be
