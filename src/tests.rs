@@ -185,7 +185,7 @@ fn parse_15d20dl4dh3rr3ab4mn2() {
     let dice_bag2 = parse::parse(input2).expect("should parse");
 
     assert_eq!(dice_bag,dice_bag2);
-    assert_eq!(dice_bag.range,MinMax([8,160]));
+    assert_eq!(dice_bag.range,MinMax([16,160]));
     assert_eq!(
         dice_bag.dice,
         vec![DiceGroup::Dice(
@@ -210,7 +210,7 @@ fn parse_15d20dl4dh3rr3ab4mn2mx18() {
     let dice_bag2 = parse::parse(input2).expect("should parse");
 
     assert_eq!(dice_bag,dice_bag2);
-    assert_eq!(dice_bag.range,MinMax([8,160]));
+    assert_eq!(dice_bag.range,MinMax([16,144]));
     assert_eq!(
         dice_bag.dice,
         vec![DiceGroup::Dice(
@@ -247,7 +247,7 @@ fn parse_15d20dl4dh3rr3ab4mn2_explosive() {
     let dice_bag2 = parse::parse(input2).expect("should parse");
 
     assert_eq!(dice_bag,dice_bag2);
-    assert_eq!(dice_bag.range,MinMax([8,160]));
+    assert_eq!(dice_bag.range,MinMax([16,160]));
     assert_eq!(
         dice_bag.dice,
         vec![DiceGroup::Dice(

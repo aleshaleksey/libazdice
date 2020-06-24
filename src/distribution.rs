@@ -335,8 +335,18 @@ impl DiceGroup {
             }
             DiceGroup::Dice(ref d) => {
                 let true_count = d.get_true_count();
-                let min_0 = d.op.operate(min_max[0], true_count as i64);
-                let max_0 = d.op.operate(min_max[1], d.size * true_count as i64);
+
+                let (s_min,s_max) = match d.cutoff {
+                    CutOff::Non => (1, d.size),
+                    CutOff::Maximum(n) => (1, n),
+                    CutOff::Minimum(n) => (n, d.size),
+                    CutOff::Both(MinMax([mi,ma])) => {
+                    (mi, ma)
+                    }
+                };
+
+                let min_0 = d.op.operate(min_max[0], s_min * true_count as i64);
+                let max_0 = d.op.operate(min_max[1], s_max * true_count as i64);
 
                 if min_0 > max_0 {
                     // min is max.
@@ -381,6 +391,10 @@ impl BonusResult {
             total: 0,
         }
     }
+
+    pub fn total(&self) -> i64 {
+        self.total
+    }
 }
 
 impl DiceResult {
@@ -389,6 +403,10 @@ impl DiceResult {
         let dice = dice.to_owned();
         let total = dice.op.operate(0, results.iter().fold(0,|acc,x| acc + x));
         DiceResult { dice, results, total, }
+    }
+
+    pub fn total(&self) -> i64 {
+        self.total
     }
 }
 
@@ -427,6 +445,16 @@ impl RollResults {
     /// Get your own total.
     pub fn total(&self) -> i64 {
         self.total
+    }
+
+    /// Get the bonus.
+    pub fn get_bonus(&self) -> &BonusResult {
+        &self.bonus
+    }
+
+    /// Get the bonus.
+    pub fn get_dice_groups(&self) -> &[DiceResult] {
+        &self.dice_groups
     }
 }
 

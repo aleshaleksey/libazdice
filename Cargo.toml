@@ -1,13 +1,14 @@
 [package]
 name = "libazdice"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["alesha <aleshaleksey>"]
 edition = "2018"
 
+# Should be compiled with "cargo rustc --release -- -C link-args=-s" if aiming for cdylib.
 [lib]
-name = "libazdice"
+name = "azdice"
 path = "src/lib.rs"
-crate-type = ["lib"]
+crate-type = ["lib","cdylib"]
 test = true
 bench = false
 
