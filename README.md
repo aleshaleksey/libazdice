@@ -106,15 +106,19 @@ Accomodate:
 
 -Building of a probability distribution from multiple rolls of a DiceBag.
 
-
+-A basic api to extern for use with C or C++. (NB! Destructors needed!)
 
 __TODO__
 
--Sensible API for use.
+-Improve C/C++ api & write destructors.
 
--An api to extern for use with C or C++.
+-Implementation of `Display` for the pub types.
 
--Implementation of `Display` for the externed types.
+-Improve documentation.
 
 __Other__
-The testing is currently incomplete, so if someone finds a bug, or thinks of an essential dice roller feature that's been overlooked, please make a comment (or something)!
+The testing ~~is currently incomplete~~ could be more extensive, so if someone finds a bug, or thinks of an essential dice roller feature that's been overlooked, please make a comment (or something)!
+
+__Compiling__
+
+Can be compiled sensibly with `cargo build --release` for both `rlib` and `cdylib` targets. A "small" (read: stripped) version can be compiled with `cargo small-release` (not recommended, unless it is).
