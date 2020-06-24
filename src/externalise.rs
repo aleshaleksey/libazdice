@@ -1,12 +1,11 @@
 // This submodule is for externing various parts of the module to C or C++
 use super::parse::parse;
 
-use std::ffi::CString;
+use std::ffi::{CString,CStr};
 use std::os::raw::c_char;
 use std::ptr;
 
 #[repr(C)]
-#[no_mangle]
 #[derive(Debug, Clone, Copy)]
 /// This structure returns a list of results in a mostly human readable format.
 pub struct Rolls {
@@ -25,7 +24,6 @@ pub struct Rolls {
 }
 
 #[repr(C)]
-#[no_mangle]
 #[derive(Debug, Clone, Copy)]
 /// Just in case we need to return lots of results.
 pub struct ListRolls {
@@ -34,7 +32,6 @@ pub struct ListRolls {
 }
 
 #[repr(C)]
-#[no_mangle]
 #[derive(Debug, Clone, Copy)]
 /// Basically a result. Which allows the error string to be returned if necessary.
 pub struct ResultListRolls {
@@ -43,7 +40,6 @@ pub struct ResultListRolls {
 }
 
 #[repr(C)]
-#[no_mangle]
 #[derive(Debug, Clone, Copy)]
 /// Basically a result. Which allows the error string to be returned if necessary.
 pub struct SingleRollResult {
@@ -60,32 +56,39 @@ pub struct SingleRollResult {
 ///
 /// NB: This function is fairly dangerous as it can fail if the input from C/C++ cannot be
 /// expressed as a rust String, but what's a dice roller without a little risk?
-pub extern "C" fn parse_and_roll_n_times(
-    input: *mut c_char,
+pub unsafe extern "C" fn parse_and_roll_n_times(
+    input: &*const c_char,
     l: u64,
     n: u64
 ) -> ResultListRolls {
-    println!("Rustside!");
+    let input = input.to_owned();
+
+    let mut final_result = ResultListRolls {
+        succ: ptr::null(),
+        err: ptr::null(),
+    };
     // A little dangerous. But what can one expect from C-chan?
-    let input_string = unsafe { CString::from_raw(input.clone()) };
-    let input_string = input_string.to_string_lossy();
-    println!("Made input_string! {}",input_string);
+    // let input_string = unsafe { CString::from_raw(input) };
+    let input_string = if let Ok(s) = CStr::from_ptr(input).to_str() {
+        s.to_owned()
+    } else {
+        let err = b"Invalid dice string in calling environment.".to_vec();
+        let err = Box::new(CString::from_vec_unchecked(err));
+        final_result.err = Box::into_raw(err);
+        return final_result;
+    };
 
     let dice = match parse(input_string.to_string()) {
+        // Error is fully dealt with. If future me messes up the error message, this should catch.
         Err(e) => {
-            // An error at the parsing stage is good here.
-            // Of course the error string must make sense.
-            let err = Box::new(CString::new(e.as_bytes()).expect("Error! Error!"));
-            println!("We have a parsing error.");
-
-            return ResultListRolls {
-                succ: ptr::null(),
-                err: Box::into_raw(err),
-            };
+            let e: Vec<u8> = e.as_bytes().to_vec();
+            let e = if e.contains(&0) { b"Error parsing initial roll".to_vec() } else { e };
+            let err = Box::new(CString::from_vec_unchecked(e));
+            final_result.err = Box::into_raw(err);
+            return final_result;
         }
         Ok(r)=> r,
     };
-    println!("Parsed succesfully!: {:?}", dice);
 
     let mut results = Vec::with_capacity(n as usize);
     for _ in 0..n {
@@ -97,7 +100,7 @@ pub extern "C" fn parse_and_roll_n_times(
 
         Rolls {
             len_input: l,
-            input: input,
+            input: input.clone(),
             len_dice_groups: results.len() as u64,
             groups: results.as_ptr(),
             bonus: res.get_bonus().total() as i64,
@@ -113,22 +116,8 @@ pub extern "C" fn parse_and_roll_n_times(
         results,
     });
 
-    let r = ResultListRolls {
-        succ: Box::into_raw(results),
-        err: ptr::null(),
-    };
-
-    println!("sizeof<ResultListRolls> ={}", std::mem::size_of::<ResultListRolls>());
-    println!("sizeof<ListRolls> ={}", std::mem::size_of::<ListRolls>());
-    println!("sizeof<Rolls> ={}", std::mem::size_of::<Rolls>());
-    println!("Final R = {:?}",r.clone());
-    unsafe {
-        println!("in r = {:?}", (*r.succ).results.clone());
-        println!("in r.input = {:?}", (*(*r.succ).results).input.clone());
-        println!("in r.groups = {:?}", (*(*r.succ).results).groups.clone());
-    }
-    r
-
+    final_result.succ = Box::into_raw(results);
+    final_result
 }
 
 #[no_mangle]
@@ -138,28 +127,37 @@ pub extern "C" fn parse_and_roll_n_times(
 ///
 /// NB: This function is fairly dangerous as it can fail if the input from C/C++ cannot be
 /// expressed as a rust String, but what's a dice roller without a little risk?
-pub extern "C" fn parse_and_roll(input: *mut c_char) -> SingleRollResult {
-    // A little dangerous. But what can one expect from C-chan?
-    let input_string = unsafe { CString::from_raw(input.clone()) };
-    let input_string = input_string.to_string_lossy();
+pub unsafe extern "C" fn parse_and_roll(input: &*const c_char) -> SingleRollResult {
+    let input = input.to_owned();
+    let mut final_result = SingleRollResult {
+        roll: 0,
+        err: ptr::null(),
+    };
 
-    let dice = match parse(input_string.to_string()) {
+    let input_string = if let Ok(s) = CStr::from_ptr(input).to_str() {
+        s.to_owned()
+    } else {
+        let err = b"Invalid dice string in calling environment.".to_vec();
+        let err = Box::new(CString::from_vec_unchecked(err));
+        final_result.err = Box::into_raw(err);
+        return final_result;
+    };
+
+    let dice = match parse(input_string.to_owned()) {
         Err(e) => {
             // An error at the parsing stage is good here.
             // Of course the error string must make sense.
-            let err = Box::new(CString::new(e.as_bytes()).expect("Error! Error!"));
-            return SingleRollResult {
-                roll: 0,
-                err: Box::into_raw(err),
-            }
+            let e: Vec<u8> = e.as_bytes().to_vec();
+            let e = if e.contains(&0) { b"Error parsing initial roll".to_vec() } else { e };
+            let err = Box::new(CString::from_vec_unchecked(e));
+            final_result.err = Box::into_raw(err);
+            return final_result;
         }
         Ok(r)=> r,
     };
-    println!("Parsed succesfully!: {:?}", dice);
-    SingleRollResult {
-        roll: dice.roll().total() as i64,
-        err: ptr::null(),
-    }
+
+    final_result.roll = dice.roll().total() as i64;
+    final_result
 }
 
 #[no_mangle]
@@ -169,40 +167,33 @@ pub extern "C" fn parse_and_roll(input: *mut c_char) -> SingleRollResult {
 ///
 /// NB: This function is fairly dangerous as it can fail if the input from C/C++ cannot be
 /// expressed as a rust String, but what's a dice roller without a little risk?
-pub extern "C" fn parse_and_roll2(input: *mut c_char) -> i64 {
+pub unsafe extern "C" fn parse_and_roll2(input: &*const c_char) -> i64 {
+    let input = input.to_owned();
     // A little dangerous. But what can one expect from C-chan?
-    let input_string = unsafe { CString::from_raw(input.clone()) };
-    let input_string = input_string.to_string_lossy();
+    let input_string = CStr::from_ptr(input).to_str().expect("Poop").to_owned();
 
     let dice = match parse(input_string.to_string()) {
-        Err(_e) => {
-            // An error at the parsing stage is good here.
-            // Of course the error string must make sense.
-            panic!("Panic! We can't parse!")
-        }
+        // We return a number so we must simply crash if we could not parse the input.
+        Err(_e) => panic!("Panic! We can't parse!"),
         Ok(r)=> r,
     };
-    println!("Parsed succesfully!: {:?}", dice);
     let i = dice.roll().total();
-    println!("We have a winner:{}",i);
     i
 }
 
 #[no_mangle]
+/// A test function for crossing ffi.
 pub extern "C" fn test(i:i64) -> *const c_char {
     let string = format!("{}",i);
     let string = string.as_bytes();
     let string = Box::new(CString::new(string).unwrap());
     string.into_raw()
-    // CString::new(string).unwrap()
 }
 
 #[no_mangle]
-pub extern "C" fn test2(i:*mut c_char) -> i64 {
-    let input_string = unsafe { CString::from_raw(i.clone()) };
-    let input_string = input_string.to_string_lossy();
-    println!("rustside = {}",input_string.len() as i64);
+/// Another test function for crossing ffi.
+pub unsafe extern "C" fn test2(i: &*const c_char) -> i64 {
+    let input_string = CStr::from_ptr(*i).to_str().expect("Poop").to_owned();
     let r = input_string.len() as i64;
     r
-    // CString::new(string).unwrap()
 }
