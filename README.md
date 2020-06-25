@@ -11,9 +11,11 @@ __Features:__
 
 -Parser for dice strings eg. "1d100+5d20dl3-4" (Done).
 
--API for creating "DiceBag"s via functions. (Needs to be externalised).
+-API for creating "DiceBag"s via functions.
 
--API for rolling a "DiceBag" once or more, or creating a probability distribution. (Done - needs to be externalised for C).
+-API for rolling a "DiceBag" once or more, or creating a probability distribution.
+
+-Simple C/C++ API for parsing, creating and rolling a "DiceBag".
 
 
 __Current Parsing Features:__
@@ -110,7 +112,7 @@ Accomodate:
 
 __TODO__
 
--Improve C/C++ api & write destructors.
+-Write destructors for C/C++ api functions.
 
 -Implementation of `Display` for the pub types.
 
