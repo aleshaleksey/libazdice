@@ -100,7 +100,7 @@ This group must be used at the end of a dice group, or an error will be triggere
 
 __Intended Rolling functionality:__
 
-Accomodate:
+Accommodate:
 
 -Single rolls of a DiceBag.
 
