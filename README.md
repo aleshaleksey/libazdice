@@ -116,6 +116,8 @@ __TODO__
 
 -Improve documentation.
 
+-Find a better source of randomness!
+
 __Other__
 The testing ~~is currently incomplete~~ could be more extensive, so if someone finds a bug, or thinks of an essential dice roller feature that's been overlooked, please make a comment (or something)!
 
