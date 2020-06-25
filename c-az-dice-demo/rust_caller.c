@@ -7,32 +7,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <dlfcn.h>
-
-
-struct Rolls {
-    uint64_t len_input;
-    const char *input;
-    uint64_t len_dice_groups;
-    const int64_t *groups;
-    int64_t bonus;
-    int64_t total;
-};
-
-
-struct ListRolls {
-    uint64_t len;
-    const struct Rolls *results;
-};
-
-struct ResultListRolls {
-    const struct ListRolls *succ;
-		const char *err;
-};
-
-struct SingleRollResult {
-    const int64_t roll;
-    const char *err;
-};
+#include "../include/libazdice.h"
 
 int main(int argc, char** argv)
 {
@@ -40,6 +15,7 @@ int main(int argc, char** argv)
     char *input = "5d6dl2mn2";
     uint64_t l = strlen(input);
     uint64_t n = 50;
+    uint64_t n_dist = 50000000;
 
     // Load the sensibly named "liblibazdice.so". Gosh what a naming sense!
     void *lib;
@@ -50,11 +26,13 @@ int main(int argc, char** argv)
         struct ResultListRolls (*parse_n)(char **, uint64_t, uint64_t);
         struct SingleRollResult (*parse)(char **);
         int64_t (*parse2)(char **);
+        struct DistributionResult (*parse_distribution)(char **, uint64_t, uint64_t);
 
         // Load functions.
         *(void **)(&parse_n) = dlsym(lib,"parse_and_roll_n_times");
         *(void **)(&parse) = dlsym(lib,"parse_and_roll");
         *(void **)(&parse2) = dlsym(lib,"parse_and_roll2");
+        *(void **)(&parse_distribution) = dlsym(lib,"parse_and_generate_distribution");
 
         // Run a single roll function.
         long int i = parse2(&input);
@@ -71,7 +49,7 @@ int main(int argc, char** argv)
         // Roll fifty rolls and return details.
         struct ResultListRolls parse_res_n = parse_n(&input, l, n);
         if (parse_res_n.err != NULL) {
-            printf("We returned with an error: %s\n", parse_res_n.err);
+            printf("We returned with an error from \"parse_and_roll_n_times\": %s\n", parse_res_n.err);
         } else {
             printf("We have rolled \"%s\", %lu times and got the following rolls:", input, n);
             int64_t total = 0;
@@ -87,6 +65,26 @@ int main(int argc, char** argv)
                 }
             }
             printf("Total = %ld\n", total);
+        }
+
+        struct DistributionResult dist_res = parse_distribution(&input, l, n_dist);
+        if (dist_res.err != NULL) {
+            printf("We returned with an error from \"parse_and_generate_distribution\": %s\n", parse_res_n.err);
+        } else {
+            printf(
+                "We have made a distribution with %lu repeats from \"%s\".\n",
+                n_dist,
+                dist_res.succ -> input
+            )
+            ;
+            printf("Value   | Frequency\n");
+            for (i=0; i<dist_res.succ -> count; i++) {
+                printf(
+                    "%ld\t| %lf\n",
+                    dist_res.succ -> rolls_and_frequencies[i].value,
+                    100.0 * (double) dist_res.succ -> rolls_and_frequencies[i].frequency / (double) n_dist
+                );
+            }
         }
     } else {
         printf("Could not load liblibazdice!\n\n");
