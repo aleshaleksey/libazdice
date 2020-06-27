@@ -192,13 +192,13 @@ impl Dice {
         self.cutoff = cutoff;
     }
 
-    pub fn add_minimum_roll(&mut self, min: i64) -> Result<(), String> {
+    pub(crate) fn add_minimum_roll(&mut self, min: i64) -> Result<(), String> {
         if min > self.size { return Err("Minimum cutoff is bigger than dice sidedness!".to_owned()); }
         self.cutoff = CutOff::Minimum(min);
         Ok(())
     }
 
-    pub fn add_maximum_roll(&mut self, max: i64) -> Result<(), String> {
+    pub(crate) fn add_maximum_roll(&mut self, max: i64) -> Result<(), String> {
         if max < 1 { return Err("Maximum cutoff is less than one!".to_owned()); }
         self.cutoff = CutOff::Minimum(max);
         Ok(())
@@ -262,7 +262,7 @@ pub enum DiceGroup {
 
 impl DiceGroup {
     /// A new default instance of dice.
-    pub fn new() -> DiceGroup {
+    pub(crate) fn new() -> DiceGroup {
         Self::default()
     }
 

@@ -34,6 +34,20 @@ const MN: &str = "mn";  // MinimumOf
 
 // 2) examine dicegroups for keywords `d`, `dl`, `dh` (in reverse order.)
 /// The main outer parser function.
+/// ```
+/// use libazdice::parse::parse;
+/// use libazdice::distribution::DiceBag;
+/// // Let's say we have an elemental sorcerer who cannot roll lower than 2 rolling the dice.
+/// let input_string = "8d6mn2".to_string();
+/// let dice_bag = parse(input_string);
+///
+/// assert!(dice_bag.is_ok());
+/// let dice_bag: DiceBag = dice_bag.unwrap();
+/// for _ in 0..10_000 {
+///     // Minimum is 8 x 2 = 16. Maximum  is 8 x 6 = 48.
+///     assert!((dice_bag.roll().total() >= 16) && (dice_bag.roll().total() <= 48));
+/// }
+/// ```
 pub fn parse(input:String) -> Result<DiceBag,String> {
     // Lowercase the string for simplicity.
     let input = input.to_lowercase();
