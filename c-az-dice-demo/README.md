@@ -8,7 +8,7 @@ libazdice has a C/C++ ffi which contains several functions. Firstly it includes 
 
 - The `test` function, which is used to test whether the library is being loaded and that strings can be returned to C/C++.
 
-- The `test2` function, which is used to test whether the library is loaded and that strings can be sent from C/C++ without causing 
+- The `test2` function, which is used to test whether the library is loaded and that strings can be sent from C/C++ without causing
 
 - The `parse_and_roll2` function which is used to test whether the parser "works". It can be used for normal "work", but is not recommended as it does not return an error if a nonsense dice string is encountered, but instead crashes the thread.
 
@@ -35,3 +35,8 @@ b) Computationally speaking, parsing a dice string to a dice string is not too e
 3) Include the `libazdice.h` ("src/include/libazdice.h") in the C/C++ progam with `#include "path/to/libazdice.h"`. **NB: Currently the functions may need to be included seperately.**
 
 4) Compile and run. Make sure tha the dylib is in the correct location if using a dylib.
+
+**NB1:** When using dynamic loading instead of linking no library needs to be specified at compile time, but `-ldl` must be specified as an argument when compiling.
+eg: `gcc rust_caller_dynamic_linking.c -ldl -o example_roller`
+
+**NB2:** When compiling with static linking to `liblibazdice.a`, `-lpthread -ldl -lm` may be needed (or not -> it's a bit of a labyrinth).

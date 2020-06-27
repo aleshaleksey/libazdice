@@ -40,3 +40,10 @@ struct SingleRollResult {
     const int64_t roll;
     const char *err;
 };
+
+struct SingleRollResult parse_and_roll(char **);
+struct ResultListRolls parse_and_roll_n_times(char **, uint64_t, uint64_t);
+struct DistributionResult parse_and_generate_distribution(char **, uint64_t, uint64_t);
+long int parse_and_roll2(char **);
+long int test2(char **);
+char *test(long unsigned int);

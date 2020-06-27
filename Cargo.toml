@@ -15,7 +15,7 @@ debug = false
 [lib]
 name = "libazdice"
 path = "src/lib.rs"
-crate-type = ["lib","cdylib"]
+crate-type = ["lib", "cdylib","staticlib"]
 test = true
 bench = false
 
