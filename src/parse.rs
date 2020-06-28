@@ -37,16 +37,42 @@ const MN: &str = "mn";  // MinimumOf
 /// ```
 /// use libazdice::parse::parse;
 /// use libazdice::distribution::DiceBag;
+///
 /// // Let's say we have an elemental sorcerer who cannot roll lower than 2 rolling the dice.
 /// let input_string = "8d6mn2".to_string();
 /// let dice_bag = parse(input_string);
 ///
 /// assert!(dice_bag.is_ok());
 /// let dice_bag: DiceBag = dice_bag.unwrap();
-/// for _ in 0..10_000 {
+/// for _ in 0..100_000 {
 ///     // Minimum is 8 x 2 = 16. Maximum  is 8 x 6 = 48.
-///     assert!((dice_bag.roll().total() >= 16) && (dice_bag.roll().total() <= 48));
+///     let result = dice_bag.roll().total();
+///     assert!((result >= 16) && (result <= 48));
+///     assert!(!(result < 16) && !(result > 48));
+///     assert!(!((result >= 8) && (result < 16)));
 /// }
+/// ```
+/// ```
+/// use libazdice::parse::parse;
+/// use libazdice::distribution::DiceBag;
+///
+/// // Now let's say there's someone rolling damage for a normal lightning bolt...
+/// let input_string = "8d6".to_string();
+/// let dice_bag = parse(input_string);
+///
+/// assert!(dice_bag.is_ok());
+/// let dice_bag: DiceBag = dice_bag.unwrap();
+/// // If `8d6` is rolled enough times, it is statistically unlikely that there will be no rolls
+/// // between 8 and 16. With 100K rolls this is pretty much impossible.
+/// let mut count_of_rolls_between_8_and_16 = 0_u64;
+/// for _ in 0..100_000 {
+///     // Minimum is 8 x 2 = 16. Maximum  is 8 x 6 = 48.
+///     let result = dice_bag.roll().total();
+///     assert!((result >= 8) && (result <= 48));
+///     assert!(!(result < 8) && !(result > 48));
+///      if (result >= 8) && (result < 16) { count_of_rolls_between_8_and_16 += 1; }
+/// }
+/// assert!(count_of_rolls_between_8_and_16 > 0);
 /// ```
 pub fn parse(input:String) -> Result<DiceBag,String> {
     // Lowercase the string for simplicity.
