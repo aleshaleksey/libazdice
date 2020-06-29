@@ -415,8 +415,8 @@ impl Bonus {
     /// ```
     /// use libazdice::distribution::*;
     ///
-    /// let plus_five: DiceGroup = Bonus::minus(5).into();
-    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five]);
+    /// let minus_five: DiceGroup = Bonus::minus(5).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![minus_five]);
     ///
     /// assert!(bag.roll().total() == -5);
     /// ```
@@ -646,8 +646,8 @@ impl RollResults {
     /// ```
     /// use libazdice::distribution::*;
     ///
-    /// let plus_five: DiceGroup = Bonus::minus(5).into();
-    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five]);
+    /// let minus_five: DiceGroup = Bonus::minus(5).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![minus_five]);
     ///
     /// // NB: When the dice is rolled, the result is stored as a `RollResults`.
     /// let res: RollResults = bag.roll();
@@ -666,8 +666,8 @@ impl RollResults {
     /// ```
     /// use libazdice::distribution::*;
     ///
-    /// let plus_five: DiceGroup = Bonus::minus(5).into();
-    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five]);
+    /// let minus_five: DiceGroup = Bonus::minus(5).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![minus_five]);
     ///
     /// // NB: When the dice is rolled, the result is stored as a `RollResults`.
     /// let res: RollResults = bag.roll();
@@ -683,10 +683,10 @@ impl RollResults {
     /// ```
     /// use libazdice::distribution::*;
     ///
-    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let minus_five: DiceGroup = Bonus::minus(5).into();
     /// let two_d_six: DiceGroup = Dice::with_size_and_count(6, 2).into();
     /// let one_d_twenty: DiceGroup = Dice::with_size_and_count(20, 1).into();
-    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five, two_d_six, one_d_twenty]);
+    /// let bag: DiceBag = DiceBag::from_dice(vec![minus_five, two_d_six, one_d_twenty]);
     ///
     /// let res: RollResults = bag.roll();
     /// let groups_results: &[DiceResult] = res.get_dice_groups();
@@ -717,10 +717,10 @@ impl DiceBag {
     /// ```
     /// use libazdice::distribution::*;
     ///
-    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let minus_five: DiceGroup = Bonus::minus(5).into();
     /// let two_d_six: DiceGroup = Dice::with_size_and_count(6, 2).into();
     /// let one_d_twenty: DiceGroup = Dice::with_size_and_count(20, 1).into();
-    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five, two_d_six, one_d_twenty]);
+    /// let bag: DiceBag = DiceBag::from_dice(vec![minus_five, two_d_six, one_d_twenty]);
     ///
     /// for _ in 0..100_000 {
     ///     let result = bag.roll();
@@ -752,9 +752,9 @@ impl DiceBag {
     /// ```
     /// use libazdice::distribution::*;
     ///
-    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let minus_five: DiceGroup = Bonus::minus(5).into();
     /// let two_d_six: DiceGroup = Dice::with_size_and_count(600_000_000, 2).into();
-    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five, two_d_six]);
+    /// let bag: DiceBag = DiceBag::from_dice(vec![minus_five, two_d_six]);
     ///
     /// // And now we can roll the dice in this `DiceBag`.
     /// let result_1: RollResults = bag.roll();
@@ -852,10 +852,10 @@ impl DiceBag {
     /// ```
     /// use libazdice::distribution::*;
     ///
-    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let minus_five: DiceGroup = Bonus::minus(5).into();
     /// let two_d_six: DiceGroup = Dice::with_size_and_count(6, 2).into();
     /// let one_d_twenty: DiceGroup = Dice::with_size_and_count(20, 1).into();
-    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five, two_d_six, one_d_twenty]);
+    /// let bag: DiceBag = DiceBag::from_dice(vec![minus_five, two_d_six, one_d_twenty]);
     ///
     /// let range = bag.get_range();
     /// assert!((range[0] == -2) && (range[1] == 27));
@@ -869,10 +869,10 @@ impl DiceBag {
     /// ```
     /// use libazdice::distribution::*;
     ///
-    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let minus_five: DiceGroup = Bonus::minus(5).into();
     /// let two_d_six: DiceGroup = Dice::with_size_and_count(6, 2).into();
     /// let one_d_twenty: DiceGroup = Dice::with_size_and_count(20, 1).into();
-    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five, two_d_six, one_d_twenty]);
+    /// let bag: DiceBag = DiceBag::from_dice(vec![minus_five, two_d_six, one_d_twenty]);
     ///
     /// let range: Vec<i64> = bag.get_range_as_list();
     /// let theoretical_range: Vec<i64> = (-2..27).collect();
