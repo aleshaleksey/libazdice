@@ -661,12 +661,45 @@ impl RollResults {
         self.total
     }
 
-    /// Get the bonus of a DiceResults.
+    /// Get the bonus of a DiceResults. The total can then be derived by calling `BonusResult::total`
+    /// on the result.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five]);
+    ///
+    /// // NB: When the dice is rolled, the result is stored as a `RollResults`.
+    /// let res: RollResults = bag.roll();
+    /// let bonus: &BonusResult = res.get_bonus();
+    /// let bonus_as_i64: i64 = bonus.total();
+    /// assert!(bonus_as_i64 == -5);
+    /// ```
     pub fn get_bonus(&self) -> &BonusResult {
         &self.bonus
     }
 
-    /// Get the results of the variable (ie non bonus) dice groups.
+    /// Get a reference to the results of the variable (ie non bonus) dice groups.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let two_d_six: DiceGroup = Dice::with_size_and_count(6, 2).into();
+    /// let one_d_twenty: DiceGroup = Dice::with_size_and_count(20, 1).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five, two_d_six, one_d_twenty]);
+    ///
+    /// let res: RollResults = bag.roll();
+    /// let groups_results: &[DiceResult] = res.get_dice_groups();
+    ///
+    /// for _ in 0..100_000 {
+    ///     let res: RollResults = bag.roll();
+    ///     let groups_results: &[DiceResult] = res.get_dice_groups();
+    ///     let gr_1_total = groups_results[0].total();
+    ///     let gr_2_total = groups_results[1].total();
+    ///     assert!((gr_1_total >= 2) && (gr_1_total < 13));
+    ///     assert!((gr_2_total >= 1) && (gr_2_total < 21));
+    /// }
+    /// ```
     pub fn get_dice_groups(&self) -> &[DiceResult] {
         &self.dice_groups
     }
@@ -679,7 +712,23 @@ pub struct DiceBag {
 }
 
 impl DiceBag {
-    /// Create a distribution for a dice set.
+
+    /// Create a distribution for a dice set from a vector of 'DiceGroup's.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let two_d_six: DiceGroup = Dice::with_size_and_count(6, 2).into();
+    /// let one_d_twenty: DiceGroup = Dice::with_size_and_count(20, 1).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five, two_d_six, one_d_twenty]);
+    ///
+    /// for _ in 0..100_000 {
+    ///     let result = bag.roll();
+    ///     assert!(result.get_bonus().total() == -5);
+    ///     assert!(result.get_dice_groups()[0].total() < 13);
+    ///     assert!(result.get_dice_groups()[1].total() < 21);
+    /// }
+    /// ```
     pub fn from_dice(dice: Vec<DiceGroup>) -> DiceBag {
         let mut dist = DiceBag {
             dice,
@@ -698,7 +747,25 @@ impl DiceBag {
         self.range = MinMax(range);
     }
 
-    /// Roll the dicebag.
+    /// Roll the dicebag and obtains a value for each dice rolled and a resulting total.
+    /// Calling the roll function a second time will cause the bag to be rolled again.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let two_d_six: DiceGroup = Dice::with_size_and_count(600_000_000, 2).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five, two_d_six]);
+    ///
+    /// // And now we can roll the dice in this `DiceBag`.
+    /// let result_1: RollResults = bag.roll();
+    /// let result_2: RollResults = bag.roll();
+    /// let total_1: i64 = result_1.total();
+    /// let total_2: i64 = result_2.total();
+    ///
+    /// // So this assertion is not technically always true, but statistically speaking
+    /// // it is very unlikely that they'll be the same.
+    /// assert!(total_1 != total_2);
+    /// ```
     pub fn roll(&self) -> RollResults {
         // NB: Will need serious reworking for multiplication and division.
         let mut final_result = RollResults::new_empty();
@@ -782,25 +849,62 @@ impl DiceBag {
     }
 
     /// A function to get a range as `[i64; 2]` (basically a minimum and maximum value).
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let two_d_six: DiceGroup = Dice::with_size_and_count(6, 2).into();
+    /// let one_d_twenty: DiceGroup = Dice::with_size_and_count(20, 1).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five, two_d_six, one_d_twenty]);
+    ///
+    /// let range = bag.get_range();
+    /// assert!((range[0] == -2) && (range[1] == 27));
+    /// ```
     pub fn get_range(&self) -> [i64; 2] {
         let MinMax(range) = self.range;
         range
     }
 
-    /// Get the range in a format which is useful.
+    /// Get the range in a format which is useful. In this case as a vector.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let two_d_six: DiceGroup = Dice::with_size_and_count(6, 2).into();
+    /// let one_d_twenty: DiceGroup = Dice::with_size_and_count(20, 1).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five, two_d_six, one_d_twenty]);
+    ///
+    /// let range: Vec<i64> = bag.get_range_as_list();
+    /// let theoretical_range: Vec<i64> = (-2..27).collect();
+    /// assert!(range == theoretical_range);
+    /// ```
     pub fn get_range_as_list(&self) -> Vec<i64> {
         let MinMax([min,max]) = self.range;
         (min..max).collect::<Vec<_>>()
     }
 
     /// Used for building frequency distributions from multiple rolls.
-    pub fn get_range_as_btreemap(&self) -> BTreeMap<i64,usize> {
+    pub(crate) fn get_range_as_btreemap(&self) -> BTreeMap<i64,usize> {
         let MinMax([min,max]) = self.range;
         (min..max).map(|i| (i,0)).collect::<BTreeMap<i64,usize>>()
     }
 
 
     /// Make a probability distribution by count.
+    /// ```
+    /// use libazdice::distribution::*;
+    /// use std::collections::BTreeMap;
+    ///
+    /// let four_d_six: DiceGroup = Dice::with_size_and_count(6, 4).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![four_d_six]);
+    ///
+    /// let distribution: BTreeMap<i64, usize>  = bag.make_count_distribution(500_000);
+    /// for i in 4..25 {
+    ///     assert!(*distribution.get(&i).unwrap() > 0);
+    /// }
+    /// assert!(distribution.get(&3).is_none());
+    /// assert!(distribution.get(&42).is_none());
+    /// ```
     pub fn make_count_distribution(&self, roll_count:usize) -> BTreeMap<i64,usize> {
         let mut range = self.get_range_as_btreemap();
         for _ in 0..roll_count {
@@ -816,6 +920,21 @@ impl DiceBag {
     }
 
     /// Makes a probability distribution on the base of 0-100% percent.
+    /// ```
+    /// use libazdice::distribution::*;
+    /// use std::collections::BTreeMap;
+    ///
+    /// let four_d_six: DiceGroup = Dice::with_size_and_count(6, 4).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![four_d_six]);
+    ///
+    /// let distribution: BTreeMap<i64, f64> = bag.make_frequency_distribution(500_000);
+    /// for i in 4..25 {
+    ///     let val = *distribution.get(&i).unwrap();
+    ///     assert!((val > 0.0) && (val < 100.0));
+    /// }
+    /// assert!(distribution.get(&3).is_none());
+    /// assert!(distribution.get(&42).is_none());
+    /// ```
     pub fn make_frequency_distribution(&self, roll_count:usize) -> BTreeMap<i64,f64> {
         self.make_count_distribution(roll_count).into_iter().map(|(i,c)| {
             (i,c as f64/roll_count as f64 * 100.0)
