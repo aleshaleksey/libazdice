@@ -66,7 +66,7 @@ const MN: &str = "mn";  // MinimumOf
 /// // between 8 and 16. With 100K rolls this is pretty much impossible.
 /// let mut count_of_rolls_between_8_and_16 = 0_u64;
 /// for _ in 0..100_000 {
-///     // Minimum is 8 x 2 = 16. Maximum  is 8 x 6 = 48.
+///     // Minimum is 8 x 1 = 8. Maximum  is 8 x 6 = 48.
 ///     let result = dice_bag.roll().total();
 ///     assert!((result >= 8) && (result <= 48));
 ///     assert!(!(result < 8) && !(result > 48));

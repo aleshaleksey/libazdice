@@ -35,6 +35,7 @@ pub(crate) enum Drop {
     Non,
     Highest(usize),
     Lowest(usize),
+    /// NB: The vector is the vector of rolls to keep.
     Custom(Vec<usize>),
     // None, <- Why would we bother to roll if we don't want to Drop any?
 }
@@ -163,7 +164,26 @@ impl Dice {
         }
     }
 
-    pub(crate) fn with_size_and_count(size: i64, count: usize) -> Dice {
+    /// Make a dice group of dice with size `size` eg 6 for a d6 and a count, `count` eg 8 for
+    /// 8d6.
+    /// Create an instance of +X. NB: uses `u32` to prevent overflow.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// let four_d_six: DiceGroup = Dice::with_size_and_count(6, 4).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![four_d_six]);
+    ///
+    /// for _ in 0..100_000 {
+    ///     // Minimum is 4 x 1 = 4. Maximum  is 4 x 6 = 24.
+    ///     let result = bag.roll().total();
+    ///     assert!((result >= 4) && (result <= 24));
+    /// }
+    /// let distribution = bag.make_count_distribution(500_000);
+    /// for i in 4..25 {
+    ///     assert!(*distribution.get(&i).unwrap() > 0);
+    /// }
+    /// ```
+    pub fn with_size_and_count(size: i64, count: usize) -> Dice {
         Dice {
             size,
             count,
@@ -179,11 +199,15 @@ impl Dice {
         self.drop = k;
     }
 
-    pub(crate) fn add_reroll_if_above(&mut self, threshold: i64, count: usize) {
+    /// Rerolls up to `count` dice (non-recursively) if the result is above `threshold`.
+    /// NB, adding more die to reroll than the `DiceGroup` contains does not cause an error.
+    pub fn add_reroll_if_above(&mut self, threshold: i64, count: usize) {
         self.reroll = ReRoll::if_above(threshold, count);
     }
 
-    pub(crate) fn add_reroll_if_below(&mut self, threshold: i64, count: usize) {
+    /// Rerolls up to `count` dice (non-recursively) if the result is below `threshold`.
+    /// NB, adding more die to reroll than the `DiceGroup` contains does not cause an error.
+    pub fn add_reroll_if_below(&mut self, threshold: i64, count: usize) {
         self.reroll = ReRoll::if_below(threshold, count);
     }
 
@@ -192,20 +216,151 @@ impl Dice {
         self.cutoff = cutoff;
     }
 
-    pub(crate) fn add_minimum_roll(&mut self, min: i64) -> Result<(), String> {
+    /// Adds a minimum roll, thus if this is set to 3, any roll of a single die under 3 is set to 3.
+    /// NB, this function returns an error if the minimum is bigger than the maximumpossible roll.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// // Start with 4d6.
+    /// let mut four_d_six: Dice = Dice::with_size_and_count(6, 4);
+    /// // Convert to 4d6mn3
+    /// four_d_six.with_minimum_roll(3);
+    ///
+    /// let four_d_six: DiceGroup = four_d_six.into();
+    ///
+    /// // Make into a dicebag.
+    /// let bag: DiceBag = DiceBag::from_dice(vec![four_d_six]);
+    ///
+    /// for _ in 0..100_000 {
+    ///     // Minimum is 4 x 3 = 12. Maximum  is 4 x 6 = 24.
+    ///     let result = bag.roll().total();
+    ///     assert!((result >= 12) && (result <= 24));
+    /// }
+    /// let distribution = bag.make_count_distribution(500_000);
+    /// for i in 12..25 {
+    ///     assert!(*distribution.get(&i).unwrap() > 0);
+    /// }
+    /// ```
+    pub fn with_minimum_roll(&mut self, min: i64) -> Result<(), String> {
         if min > self.size { return Err("Minimum cutoff is bigger than dice sidedness!".to_owned()); }
         self.cutoff = CutOff::Minimum(min);
         Ok(())
     }
 
-    pub(crate) fn add_maximum_roll(&mut self, max: i64) -> Result<(), String> {
+    /// Adds a maximum roll, thus if this is set to 4, any roll of a single die over 4 is set to 4.
+    /// Returns an error if the maximum is less than one.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// // Start with 4d6.
+    /// let mut four_d_six: Dice = Dice::with_size_and_count(6, 4);
+    /// // Convert to 4d6mx4
+    /// four_d_six.with_maximum_roll(4);
+    ///
+    /// let four_d_six: DiceGroup = four_d_six.into();
+    ///
+    /// // Make into a dicebag.
+    /// let bag: DiceBag = DiceBag::from_dice(vec![four_d_six]);
+    ///
+    /// for _ in 0..100_000 {
+    ///     // Minimum is 4 x 1 = 4. Maximum  is 4 x 4 = 16.
+    ///     let result = bag.roll().total();
+    ///     assert!((result >= 4) && (result <= 16));
+    /// }
+    /// let distribution = bag.make_count_distribution(500_000);
+    /// for i in 4..17 {
+    ///     assert!(*distribution.get(&i).unwrap() > 0);
+    /// }
+    /// ```
+    pub fn with_maximum_roll(&mut self, max: i64) -> Result<(), String> {
         if max < 1 { return Err("Maximum cutoff is less than one!".to_owned()); }
-        self.cutoff = CutOff::Minimum(max);
+        self.cutoff = CutOff::Maximum(max);
+        Ok(())
+    }
+
+    /// Add a maximum and minimum cutoff value to the dice roll. For example if one sets a min of 2
+    /// and a max of 5 for a d6 it essentially becomes a 1d4+1.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// // Start with 4d6.
+    /// let mut four_d_six: Dice = Dice::with_size_and_count(6, 4);
+    /// // Convert to 4d6mx5mn2
+    /// four_d_six.with_min_and_max_roll(2, 5);
+    ///
+    /// let four_d_six: DiceGroup = four_d_six.into();
+    ///
+    /// // Make into a dicebag.
+    /// let bag: DiceBag = DiceBag::from_dice(vec![four_d_six]);
+    ///
+    /// for _ in 0..100_000 {
+    ///     // Minimum is 4 x 2 = 8. Maximum  is 4 x 5 = 20.
+    ///     let result = bag.roll().total();
+    ///     assert!((result >= 8) && (result <= 20));
+    /// }
+    /// let distribution = bag.make_count_distribution(500_000);
+    /// for i in 8..21 {
+    ///     assert!(*distribution.get(&i).unwrap() > 0);
+    /// }
+    /// ```
+    pub fn with_min_and_max_roll(&mut self, min: i64, max: i64) -> Result<(), String> {
+        if max < 1 {
+            return Err("Maximum cutoff is less than one!".to_owned());
+        } else if min > self.size {
+            return Err("Minimum cutoff is bigger than dice sidedness!".to_owned());
+        }
+
+        self.cutoff = CutOff::Both(MinMax([min,max]));
         Ok(())
     }
 
     pub(crate) fn add_op(&mut self, op: DiceOp) {
         self.op = op;
+    }
+
+    /// Public function for making the dice into a plus set (eg `+8d6`).
+    pub fn to_plus_dice(&mut self) {
+        self.op = DiceOp::Add;
+    }
+
+    /// Public function for making the dice into a minus set (eg `-8d6`).
+    pub fn to_minus_dice(&mut self) {
+        self.op = DiceOp::Sub;
+    }
+
+    /// A function to allow one to set how many of the lowest dice rolls in the group to
+    /// be dropped. (Eg "5d6dl2")
+    /// NB: Trying to add more dice to drop than the dicegroup contains will result in an error.
+    pub fn with_drop_lowest(&mut self, n: usize) -> Result<(), String> {
+        if self.count < n {
+            return Err("Trying to make a dicegroup which drops more dice than it has.".to_string());
+        }
+        self.drop = Drop::Lowest(n);
+        Ok(())
+    }
+
+    /// A function to allow one to set how many of the highest dice rolls in the group to
+    /// be dropped. (Eg "5d6dl2")
+    /// NB: Trying to add more dice to drop than the dicegroup contains will result in an error.
+    pub fn with_drop_highest(&mut self, n: usize) -> Result<(), String> {
+        if self.count < n {
+            return Err("Trying to make a dicegroup which drops more dice than it has.".to_string());
+        }
+        self.drop = Drop::Highest(n);
+        Ok(())
+    }
+
+    /// A function to allow one to set how many of the lowest and highest rolls to discard.
+    /// (Eg "5d6dl2dh1").
+    /// NB: If the count of highest and lowest to drop is greater than the total count of dice in
+    /// the dice group, an error will be returned.
+    pub fn with_drop_highest_and_lowest(&mut self, n_l: usize, n_h: usize) -> Result<(), String> {
+        if self.count < n_l + n_h {
+            return Err("Trying to make a dicegroup which drops more dice than it has.".to_string());
+        }
+        let keep_vector = (n_l..(self.count-n_h)).collect::<Vec<_>>();
+        self.drop = Drop::Custom(keep_vector);
+        Ok(())
     }
 
     fn get_true_count(&self) -> usize {
@@ -232,11 +387,43 @@ impl Bonus {
         Self::default()
     }
 
-    /// Create default instance of a `Bonus`.
+    /// Create custom instance of a `Bonus`.
     pub(crate) fn of(n:i64) -> Bonus {
         Bonus {
             bonus: n,
             op: DiceOp::Add,
+        }
+    }
+
+    /// Create an instance of +X. NB: uses `u32` to prevent overflow.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// let plus_five: DiceGroup = Bonus::plus(5).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five]);
+    ///
+    /// assert!(bag.roll().total() == 5);
+    /// ```
+    pub fn plus(n:u32) -> Bonus {
+        Bonus {
+            bonus: n as i64,
+            op: DiceOp::Add,
+        }
+    }
+
+    /// Create an instance of -X. NB: uses `u32` to prevent overflow.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five]);
+    ///
+    /// assert!(bag.roll().total() == -5);
+    /// ```
+    pub fn minus(n:u32) -> Bonus {
+        Bonus {
+            bonus: n as i64,
+            op: DiceOp::Sub,
         }
     }
 
@@ -258,6 +445,18 @@ pub enum DiceGroup {
     Bonus(Bonus),
     Dice(Dice),
 
+}
+
+impl From<Dice> for DiceGroup {
+    fn from(d:Dice) -> DiceGroup {
+        DiceGroup::Dice(d)
+    }
+}
+
+impl From<Bonus> for DiceGroup {
+    fn from(b:Bonus) -> DiceGroup {
+        DiceGroup::Bonus(b)
+    }
 }
 
 impl DiceGroup {
@@ -442,17 +641,32 @@ impl RollResults {
         self.bonus.boni.push(*bonus);
     }
 
-    /// Get your own total.
+    /// An instance of `RollResults` is a fairly comprehensive report, internally. This function
+    /// allows you to get the total as an `i64`.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// let plus_five: DiceGroup = Bonus::minus(5).into();
+    /// let bag: DiceBag = DiceBag::from_dice(vec![plus_five]);
+    ///
+    /// // NB: When the dice is rolled, the result is stored as a `RollResults`.
+    /// let res: RollResults = bag.roll();
+    ///
+    /// // NB2: The total is an `i64`.
+    /// let total: i64 = res.total();
+    ///
+    /// assert!(total == -5);
+    /// ```
     pub fn total(&self) -> i64 {
         self.total
     }
 
-    /// Get the bonus.
+    /// Get the bonus of a DiceResults.
     pub fn get_bonus(&self) -> &BonusResult {
         &self.bonus
     }
 
-    /// Get the bonus.
+    /// Get the results of the variable (ie non bonus) dice groups.
     pub fn get_dice_groups(&self) -> &[DiceResult] {
         &self.dice_groups
     }
@@ -466,7 +680,7 @@ pub struct DiceBag {
 
 impl DiceBag {
     /// Create a distribution for a dice set.
-    pub(crate) fn from_dice(dice: Vec<DiceGroup>) -> DiceBag {
+    pub fn from_dice(dice: Vec<DiceGroup>) -> DiceBag {
         let mut dist = DiceBag {
             dice,
             range: MinMax([0,0]),
