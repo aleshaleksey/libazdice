@@ -1,3 +1,4 @@
+//! This module contains the parser for dice strings. The only public function here is `parse`.
 use super::distribution::*;
 use std::result::Result;
 
@@ -35,7 +36,7 @@ const MN: &str = "mn";  // MinimumOf
 // 2) examine dicegroups for keywords `d`, `dl`, `dh` (in reverse order.)
 /// The main outer parser function.
 /// ```
-/// use libazdice::parse::parse;
+/// use libazdice::parse;
 /// use libazdice::distribution::DiceBag;
 ///
 /// // Let's say we have an elemental sorcerer who cannot roll lower than 2 rolling the dice.

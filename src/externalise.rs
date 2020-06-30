@@ -1,4 +1,4 @@
-// This submodule is for externing various parts of the module to C or C++
+//! This submodule is for externing various parts of the module to C or C++
 use super::parse::parse;
 
 use std::ffi::{CString,CStr};

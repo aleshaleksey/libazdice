@@ -1,3 +1,8 @@
+//! The Distribution module contains the basic structures needed for parsing dice strings,
+//! and holding the parsed dice and the resulting rolls. The implementations here also allow
+//! the construction of `DiceBag`s using from a different source, hence allowing this library
+//! to be used in dice rolling applications that need to make fairly complex rolls, but do not
+//! necessarily need to parse dice strings.
 #![allow(dead_code)]
 extern crate rand;
 use crate::distribution::rand::Rng;
@@ -201,12 +206,52 @@ impl Dice {
 
     /// Rerolls up to `count` dice (non-recursively) if the result is above `threshold`.
     /// NB, adding more die to reroll than the `DiceGroup` contains does not cause an error.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// // Start with 1d6.
+    /// let mut one_d_six: Dice = Dice::with_size_and_count(6, 1);
+    /// // Convert to 1d6rr1ab5
+    /// one_d_six.add_reroll_if_above(5,1);
+    ///
+    /// let one_d_six: DiceGroup = one_d_six.into();
+    ///
+    /// // Make into a dicebag.
+    /// let bag: DiceBag = DiceBag::from_dice(vec![one_d_six]);
+    ///
+    /// let mean = bag.make_count_distribution(500_000)
+    ///     .into_iter()
+    ///     .fold(0,|acc,(v,n)| acc + v * n as i64) as f64 / 500_000.0;
+    ///
+    /// // The mean of a 1d6rr1ab5 should be about 3.08. (The mean of 1d6 is 3.5).
+    /// assert!((mean > 3.0) && (mean < 3.15))
+    /// ```
     pub fn add_reroll_if_above(&mut self, threshold: i64, count: usize) {
         self.reroll = ReRoll::if_above(threshold, count);
     }
 
     /// Rerolls up to `count` dice (non-recursively) if the result is below `threshold`.
     /// NB, adding more die to reroll than the `DiceGroup` contains does not cause an error.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// // Start with 1d6.
+    /// let mut one_d_six: Dice = Dice::with_size_and_count(6, 1);
+    /// // Convert to 1d6rr1be2
+    /// one_d_six.add_reroll_if_below(2,1);
+    ///
+    /// let one_d_six: DiceGroup = one_d_six.into();
+    ///
+    /// // Make into a dicebag.
+    /// let bag: DiceBag = DiceBag::from_dice(vec![one_d_six]);
+    ///
+    /// let mean = bag.make_count_distribution(500_000)
+    ///     .into_iter()
+    ///     .fold(0,|acc,(v,n)| acc + v * n as i64) as f64 / 500_000.0;
+    ///
+    /// // The mean of a 1d6rr1be2 should be about 3.92. (The mean of 1d6 is 3.5).
+    /// assert!((mean > 3.85) && (mean < 4.0))
+    /// ```
     pub fn add_reroll_if_below(&mut self, threshold: i64, count: usize) {
         self.reroll = ReRoll::if_below(threshold, count);
     }
@@ -318,12 +363,35 @@ impl Dice {
         self.op = op;
     }
 
-    /// Public function for making the dice into a plus set (eg `+8d6`).
+    /// Public function for making the dice into a plus set (eg `+8d6`). NB: It not usually needed
+    /// as the default op for a dice is `Add`.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// // Start with 4d8.
+    /// let four_d_eight: Dice = Dice::with_size_and_count(8, 4);
+    /// let mut plus_four_d_eight: Dice = Dice::with_size_and_count(8, 4);
+    /// plus_four_d_eight.to_plus_dice();
+    /// assert!(plus_four_d_eight == plus_four_d_eight);
+    /// ```
     pub fn to_plus_dice(&mut self) {
         self.op = DiceOp::Add;
     }
 
     /// Public function for making the dice into a minus set (eg `-8d6`).
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// // Start with 4d8.
+    /// let mut minus_four_d_eight: Dice = Dice::with_size_and_count(8, 4);
+    /// minus_four_d_eight.to_minus_dice();
+    /// let bag = DiceBag::from_dice(vec![minus_four_d_eight.into()]);
+    ///
+    /// let mean = bag.make_count_distribution(500_000)
+    ///     .into_iter()
+    ///     .fold(0,|acc,(v,n)| acc + v * n as i64) as f64 / 500_000.0;
+    /// assert!((mean > -18.1) && (mean < -17.9));
+    /// ```
     pub fn to_minus_dice(&mut self) {
         self.op = DiceOp::Sub;
     }
@@ -331,6 +399,29 @@ impl Dice {
     /// A function to allow one to set how many of the lowest dice rolls in the group to
     /// be dropped. (Eg "5d6dl2")
     /// NB: Trying to add more dice to drop than the dicegroup contains will result in an error.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// // Start with 4d6.
+    /// let mut four_d_six: Dice = Dice::with_size_and_count(6, 4);
+    /// // Convert to 4d6dl1
+    /// four_d_six.with_drop_lowest(1);
+    ///
+    /// // Make into a dicebag.
+    /// let bag: DiceBag = DiceBag::from_dice(vec![four_d_six.into()]);
+    ///
+    /// for _ in 0..100_000 {
+    ///     // Minimum is 3 x 1 = 3. Maximum  is 3 x 6 = 18.
+    ///     let result = bag.roll().total();
+    ///     assert!((result >= 3) && (result <= 18));
+    /// }
+    ///
+    /// let mean = bag.make_count_distribution(500_000)
+    ///     .into_iter()
+    ///     .fold(0,|acc,(v,n)| acc + v * n as i64) as f64 / 500_000.0;
+    /// // The mean of a 4d6l1 will be ~12.245. This is above 3d6 (10.5) and below 4d6 (14).
+    /// assert!((mean > 12.2) && (mean < 12.3));
+    /// ```
     pub fn with_drop_lowest(&mut self, n: usize) -> Result<(), String> {
         if self.count < n {
             return Err("Trying to make a dicegroup which drops more dice than it has.".to_string());
@@ -340,8 +431,31 @@ impl Dice {
     }
 
     /// A function to allow one to set how many of the highest dice rolls in the group to
-    /// be dropped. (Eg "5d6dl2")
+    /// be dropped. (Eg "5d6dh2")
     /// NB: Trying to add more dice to drop than the dicegroup contains will result in an error.
+    /// ```
+    /// use libazdice::distribution::*;
+    ///
+    /// // Start with 4d6.
+    /// let mut four_d_six: Dice = Dice::with_size_and_count(6, 4);
+    /// // Convert to 4d6dh1
+    /// four_d_six.with_drop_highest(1);
+    ///
+    /// // Make into a dicebag.
+    /// let bag: DiceBag = DiceBag::from_dice(vec![four_d_six.into()]);
+    ///
+    /// for _ in 0..100_000 {
+    ///     // Minimum is 3 x 1 = 3. Maximum  is 3 x 6 = 18.
+    ///     let result = bag.roll().total();
+    ///     assert!((result >= 3) && (result <= 18));
+    /// }
+    ///
+    /// let mean = bag.make_count_distribution(500_000)
+    ///     .into_iter()
+    ///     .fold(0,|acc,(v,n)| acc + v * n as i64) as f64 / 500_000.0;
+    /// // The mean of a 4d6l1 will be (~8.875).  Lower than 3d6 (10.5).
+    /// assert!((mean > 8.7) && (mean < 8.8));
+    /// ```
     pub fn with_drop_highest(&mut self, n: usize) -> Result<(), String> {
         if self.count < n {
             return Err("Trying to make a dicegroup which drops more dice than it has.".to_string());
@@ -570,6 +684,8 @@ impl DiceGroup {
 }
 
 #[derive(Debug,Clone,PartialEq)]
+/// A `DiceResult` is a collection of individual dice results from a `DiceGroup`, of the dice type,
+///as well as the total and the accompanying dice.
 pub struct DiceResult {
     dice: Dice,
     results: Vec<i64>,
@@ -577,6 +693,7 @@ pub struct DiceResult {
 }
 
 #[derive(Debug,Clone,PartialEq)]
+/// A `BonusResult` is a collection of all the static modifiers (boni) in a dice bag and their total.
 pub struct BonusResult {
     boni: Vec<i64>,
     total: i64,
@@ -591,6 +708,7 @@ impl BonusResult {
         }
     }
 
+    /// Gets the total of a bonus result (Aka the actual bonus) as an `i64` value.
     pub fn total(&self) -> i64 {
         self.total
     }
@@ -604,6 +722,7 @@ impl DiceResult {
         DiceResult { dice, results, total, }
     }
 
+    /// Gets the result of a roll of a Rolled `DiceGroup`.
     pub fn total(&self) -> i64 {
         self.total
     }
