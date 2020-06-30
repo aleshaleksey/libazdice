@@ -520,3 +520,73 @@ fn parse_5d20_test() {
 fn parse_345d4653_test() {
     simple_parse_inner(345,4653)
 }
+
+#[test]
+/// This test is meant to test the randomness and unbiasedness of the dice.
+/// NB, this is not a statistically rigorous test (yet!).
+/// The mean of 1d10 is of course 5.5. The error margin should be small.
+/// Therefore occasionally this test might fail at random.
+fn test_distribution_average_1d10() {
+    let one_d_ten = super::parse("1d10".to_owned()).unwrap();
+
+    let mean = one_d_ten.make_count_distribution(50_000_000)
+        .into_iter()
+        .fold(0, |acc, (val, n)| acc + val * n as i64) as f64 / 50_000_000.0;
+
+    assert!((mean > 5.499) && (mean < 5.501));
+}
+
+#[test]
+/// This test is meant to test the randomness and unbiasedness of the dice.
+/// NB, this is not a statistically rigorous test (yet!).
+/// The frequency for each value should be 10%, the error margin should be small.
+/// Therefore occasionally this test might fail at random.
+fn test_distribution_frequency() {
+    let one_d_ten = super::parse("1d10".to_owned()).unwrap();
+
+    let distribution = one_d_ten.make_frequency_distribution(50_000_000)
+        .into_iter();
+
+    for (_val, f) in distribution {
+        assert!((f > 9.99) && (f < 10.01));
+    }
+}
+
+#[test]
+/// Even if a distribution is "uniform" theoretically, it may be irregular in general. However,
+/// there may be clustering (for example the probability of getting three 20s in a row from 1d20)
+/// rolls is 1/8000, so in a non-clustered distribution it shoule be approximately of the correct
+/// value.
+fn test_random_clustering_d_ten() {
+    let one_d_ten = super::parse("1d10".to_owned()).unwrap();
+
+    let mut chains =Vec::with_capacity(10_000_000);
+
+    let mut last_roll = 0;
+    let mut last_chain = 0;
+    for _ in 0..20_000_000 {
+        let roll = one_d_ten.roll().total();
+        if roll == last_roll {
+            last_chain+= 1;
+        } else {
+            chains.push(last_chain);
+            last_chain = 0;
+        }
+        last_roll = roll;
+    }
+
+    // NB 0 means 1 in a row. 1 means 2 in a row, 1 means 3 in a row and so on.
+    let zero = chains.iter().filter(|x| **x==0).count() as f64 / chains.len() as f64 * 100.0;
+    let zero = (zero > 89.95) && (zero < 90.05);
+
+    let one = chains.iter().filter(|x| **x>=1).count() as f64 / chains.len() as f64 * 100.0;
+    let one = (one > 9.8) && (one < 10.2);
+
+    let two = chains.iter().filter(|x| **x>=2).count() as f64 / chains.len() as f64 * 100.0;
+    let two = (two > 0.98) && (two < 1.02);
+
+    // Statistics is weaker for small numbers.
+    let three = chains.iter().filter(|x| **x>=3).count() as f64 / chains.len() as f64 * 100.0;
+    let three = (three > 0.096) && (three < 0.104);
+    assert!(zero && one && two && three);
+}
