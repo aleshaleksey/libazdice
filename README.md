@@ -102,23 +102,25 @@ __Intended Rolling functionality:__
 
 Accommodate:
 
--Single rolls of a DiceBag.
+- Single rolls of a DiceBag.
 
--Multiple rolls of a DiceBag.
+- Multiple rolls of a DiceBag.
 
--Building of a probability distribution from multiple rolls of a DiceBag.
+- Building of a probability distribution from multiple rolls of a DiceBag.
 
--A basic api to extern for use with C or C++. (NB! Destructors needed!)
+- A basic api to extern for use with C or C++. (NB! Destructors needed!)
+
+
 
 __TODO__
 
--Write destructors for C/C++ api functions.
+- Write destructors for C/C++ api functions.
 
--Implementation of `Display` for the pub types.
+- Implementation of `Display` for the pub types.
 
--Improve documentation.
+~~- Improve documentation.~~
 
--Find a better source of randomness!
+~~- Find a better source of randomness!~~
 
 __Other__
 The testing ~~is currently incomplete~~ could be more extensive, so if someone finds a bug, or thinks of an essential dice roller feature that's been overlooked, please make a comment (or something)!
