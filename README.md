@@ -116,11 +116,11 @@ __TODO__
 
 - Write destructors for C/C++ api functions.
 
-~~ - Implementation of `Display` for the pub types.~~
+~~- Implementation of `Display` for the pub types.~~
 
-~~ - Improve documentation.~~
+~~- Improve documentation.~~
 
-~~ - Find a better source of randomness!~~
+~~- Find a better source of randomness!~~
 
 __Other__
 The testing ~~is currently incomplete~~ could be more extensive, so if someone finds a bug, or thinks of an essential dice roller feature that's been overlooked, please make a comment (or something)!
