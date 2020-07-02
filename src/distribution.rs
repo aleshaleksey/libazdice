@@ -8,11 +8,11 @@ extern crate rand;
 use crate::distribution::rand::Rng;
 use std::collections::BTreeMap;
 
-#[derive(Debug,Clone,Copy,PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 /// A range.
-pub(crate) struct MinMax(pub [i64;2]);
+pub(crate) struct MinMax(pub [i64; 2]);
 
-#[derive(Debug,Clone,Copy,PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 /// Represents the interactions of a Dicegroup with other groups.
 pub(crate) enum DiceOp {
     Add,
@@ -24,7 +24,7 @@ pub(crate) enum DiceOp {
 
 impl DiceOp {
     /// Apply a diceop to a set of numbers to add to a total.
-    pub(crate) fn operate(self, acc:i64, x:i64) -> i64 {
+    pub(crate) fn operate(self, acc: i64, x: i64) -> i64 {
         match self {
             DiceOp::Add => acc + x,
             DiceOp::Sub => acc - x,
@@ -35,7 +35,7 @@ impl DiceOp {
 }
 
 /// An enum representing the drop clause on a set of dice duch as the "dl4" on "6d6dl4".
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Drop {
     Non,
     Highest(usize),
@@ -47,7 +47,7 @@ pub(crate) enum Drop {
 
 /// An enum representing the minimal or maximal value that a die in a `DiceGroup` can have.
 /// This is supposed to accomodate syntax like "8d6mn2" or "8d6mx2".
-#[derive(Debug,Clone,Copy,PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum CutOff {
     Non,
     Minimum(i64),
@@ -59,8 +59,16 @@ impl CutOff {
     /// Compare a rolled value to a cutoff and modify if appropriate.
     fn use_to_cut_off(&self, val: &mut i64) {
         match self {
-            CutOff::Minimum(n) => if *val < *n {*val = *n; },
-            CutOff::Maximum(n) => if *val > *n {*val = *n; },
+            CutOff::Minimum(n) => {
+                if *val < *n {
+                    *val = *n;
+                }
+            }
+            CutOff::Maximum(n) => {
+                if *val > *n {
+                    *val = *n;
+                }
+            }
             CutOff::Both(MinMax([mn, mx])) => {
                 if *val > *mx {
                     *val = *mx;
@@ -74,7 +82,7 @@ impl CutOff {
 }
 
 /// Allow a clause for rerolling a certain number of dice if the result is above/below a value.
-#[derive(Debug,Clone,Copy,PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct ReRollType {
     /// Number of dice to reroll.
     pub(crate) count: usize,
@@ -85,12 +93,11 @@ pub(crate) struct ReRollType {
 /// A condiitonal clause for rerolling dice.
 /// This is supposed to accomodate syntax such as "6d6rr4be2".
 /// "be" codes for below, "ab" codes for "above".
-#[derive(Debug,Clone,Copy,PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum ReRoll {
     Never,
     IfAbove(ReRollType),
     IfBelow(ReRollType),
-
 }
 
 impl ReRoll {
@@ -105,13 +112,19 @@ impl ReRoll {
 
     /// An instance of reroll if above a certain value.
     pub(crate) fn if_above(ex_threshold: i64, count: usize) -> ReRoll {
-        let rrt = ReRollType { count, ex_threshold, };
+        let rrt = ReRollType {
+            count,
+            ex_threshold,
+        };
         ReRoll::IfAbove(rrt)
     }
 
     /// An instance of reroll if below a certain value.
     pub(crate) fn if_below(ex_threshold: i64, count: usize) -> ReRoll {
-        let rrt = ReRollType { count, ex_threshold, };
+        let rrt = ReRollType {
+            count,
+            ex_threshold,
+        };
         ReRoll::IfBelow(rrt)
     }
 }
@@ -139,7 +152,7 @@ impl Drop {
 }
 
 // NB: This structure does not representa single die, but a dice-set of a single-sidedness.
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Dice {
     pub(crate) size: i64,
     pub(crate) count: usize,
@@ -287,7 +300,9 @@ impl Dice {
     /// }
     /// ```
     pub fn with_minimum_roll(&mut self, min: i64) -> Result<(), String> {
-        if min > self.size { return Err("Minimum cutoff is bigger than dice sidedness!".to_owned()); }
+        if min > self.size {
+            return Err("Minimum cutoff is bigger than dice sidedness!".to_owned());
+        }
         self.cutoff = CutOff::Minimum(min);
         Ok(())
     }
@@ -318,7 +333,9 @@ impl Dice {
     /// }
     /// ```
     pub fn with_maximum_roll(&mut self, max: i64) -> Result<(), String> {
-        if max < 1 { return Err("Maximum cutoff is less than one!".to_owned()); }
+        if max < 1 {
+            return Err("Maximum cutoff is less than one!".to_owned());
+        }
         self.cutoff = CutOff::Maximum(max);
         Ok(())
     }
@@ -355,7 +372,7 @@ impl Dice {
             return Err("Minimum cutoff is bigger than dice sidedness!".to_owned());
         }
 
-        self.cutoff = CutOff::Both(MinMax([min,max]));
+        self.cutoff = CutOff::Both(MinMax([min, max]));
         Ok(())
     }
 
@@ -424,7 +441,9 @@ impl Dice {
     /// ```
     pub fn with_drop_lowest(&mut self, n: usize) -> Result<(), String> {
         if self.count < n {
-            return Err("Trying to make a dicegroup which drops more dice than it has.".to_string());
+            return Err(
+                "Trying to make a dicegroup which drops more dice than it has.".to_string(),
+            );
         }
         self.drop = Drop::Lowest(n);
         Ok(())
@@ -458,7 +477,9 @@ impl Dice {
     /// ```
     pub fn with_drop_highest(&mut self, n: usize) -> Result<(), String> {
         if self.count < n {
-            return Err("Trying to make a dicegroup which drops more dice than it has.".to_string());
+            return Err(
+                "Trying to make a dicegroup which drops more dice than it has.".to_string(),
+            );
         }
         self.drop = Drop::Highest(n);
         Ok(())
@@ -470,9 +491,11 @@ impl Dice {
     /// the dice group, an error will be returned.
     pub fn with_drop_highest_and_lowest(&mut self, n_l: usize, n_h: usize) -> Result<(), String> {
         if self.count < n_l + n_h {
-            return Err("Trying to make a dicegroup which drops more dice than it has.".to_string());
+            return Err(
+                "Trying to make a dicegroup which drops more dice than it has.".to_string(),
+            );
         }
-        let keep_vector = (n_l..(self.count-n_h)).collect::<Vec<_>>();
+        let keep_vector = (n_l..(self.count - n_h)).collect::<Vec<_>>();
         self.drop = Drop::Custom(keep_vector);
         Ok(())
     }
@@ -489,7 +512,7 @@ impl Dice {
     }
 }
 
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Bonus {
     pub(crate) bonus: i64,
     pub(crate) op: DiceOp,
@@ -502,7 +525,7 @@ impl Bonus {
     }
 
     /// Create custom instance of a `Bonus`.
-    pub(crate) fn of(n:i64) -> Bonus {
+    pub(crate) fn of(n: i64) -> Bonus {
         Bonus {
             bonus: n,
             op: DiceOp::Add,
@@ -518,7 +541,7 @@ impl Bonus {
     ///
     /// assert!(bag.roll().total() == 5);
     /// ```
-    pub fn plus(n:u32) -> Bonus {
+    pub fn plus(n: u32) -> Bonus {
         Bonus {
             bonus: n as i64,
             op: DiceOp::Add,
@@ -534,7 +557,7 @@ impl Bonus {
     ///
     /// assert!(bag.roll().total() == -5);
     /// ```
-    pub fn minus(n:u32) -> Bonus {
+    pub fn minus(n: u32) -> Bonus {
         Bonus {
             bonus: n as i64,
             op: DiceOp::Sub,
@@ -542,7 +565,7 @@ impl Bonus {
     }
 
     /// Default bonus is 0, default operation is addition.
-     fn default() -> Bonus {
+    fn default() -> Bonus {
         Bonus {
             bonus: 0,
             op: DiceOp::Add,
@@ -554,21 +577,20 @@ impl Bonus {
     }
 }
 
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DiceGroup {
     Bonus(Bonus),
     Dice(Dice),
-
 }
 
 impl From<Dice> for DiceGroup {
-    fn from(d:Dice) -> DiceGroup {
+    fn from(d: Dice) -> DiceGroup {
         DiceGroup::Dice(d)
     }
 }
 
 impl From<Bonus> for DiceGroup {
-    fn from(b:Bonus) -> DiceGroup {
+    fn from(b: Bonus) -> DiceGroup {
         DiceGroup::Bonus(b)
     }
 }
@@ -581,7 +603,7 @@ impl DiceGroup {
 
     /// A default instance for dice.
     fn default() -> DiceGroup {
-        let d = Dice::with_size_and_count(6,1);
+        let d = Dice::with_size_and_count(6, 1);
         DiceGroup::Dice(d)
     }
 
@@ -590,7 +612,7 @@ impl DiceGroup {
         DiceGroup::Dice(d)
     }
 
-    pub(crate) fn bonus(n:i64) -> DiceGroup {
+    pub(crate) fn bonus(n: i64) -> DiceGroup {
         let b = Bonus::of(n);
         DiceGroup::Bonus(b)
     }
@@ -605,32 +627,32 @@ impl DiceGroup {
 
     /// Calculate the minmax for a single dice set.
     pub(crate) fn calculate_minmax(&self) -> MinMax {
-        match self {
-            &DiceGroup::Bonus(ref n) => MinMax([n.bonus,n.bonus]),
-            &DiceGroup::Dice(ref d) => {
+        match *self {
+            DiceGroup::Bonus(ref n) => MinMax([n.bonus, n.bonus]),
+            DiceGroup::Dice(ref d) => {
                 let drop = match d.drop {
-                    Drop::Highest(n)|Drop::Lowest(n) => n,
+                    Drop::Highest(n) | Drop::Lowest(n) => n,
                     Drop::Custom(ref v) => v.len(),
                     _ => 0,
                 };
-                if drop>=d.count {
-                    return MinMax([0,0]);
+                if drop >= d.count {
+                    return MinMax([0, 0]);
                 }
                 let f = (d.count - drop) as i64;
                 let min_0 = f;
-                let max_0 = d.size*f;
+                let max_0 = d.size * f;
 
                 if min_0 > max_0 {
-                    MinMax([max_0,min_0])
+                    MinMax([max_0, min_0])
                 } else {
-                    MinMax([min_0,max_0])
+                    MinMax([min_0, max_0])
                 }
             }
         }
     }
 
     /// Takes a minmax and performs an operation on a minmax.
-    pub(crate) fn add_to_range(&self, min_max: &mut [i64;2]) {
+    pub(crate) fn add_to_range(&self, min_max: &mut [i64; 2]) {
         match self {
             DiceGroup::Bonus(n) => {
                 let min_0 = n.op.operate(min_max[0], n.bonus);
@@ -649,13 +671,11 @@ impl DiceGroup {
             DiceGroup::Dice(ref d) => {
                 let true_count = d.get_true_count();
 
-                let (s_min,s_max) = match d.cutoff {
+                let (s_min, s_max) = match d.cutoff {
                     CutOff::Non => (1, d.size),
                     CutOff::Maximum(n) => (1, n),
                     CutOff::Minimum(n) => (n, d.size),
-                    CutOff::Both(MinMax([mi,ma])) => {
-                    (mi, ma)
-                    }
+                    CutOff::Both(MinMax([mi, ma])) => (mi, ma),
                 };
 
                 let min_0 = d.op.operate(min_max[0], s_min * true_count as i64);
@@ -676,14 +696,13 @@ impl DiceGroup {
 
     /// Add whether explosive or not.
     pub(crate) fn is_explosive(&mut self, x: bool) {
-        match self {
-            DiceGroup::Dice(ref mut d) => d.explosive = x,
-            _ => {},
+        if let DiceGroup::Dice(ref mut d) = self {
+            d.explosive = x;
         }
     }
 }
 
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 /// A `DiceResult` is a collection of individual dice results from a `DiceGroup`, of the dice type,
 ///as well as the total and the accompanying dice.
 pub struct DiceResult {
@@ -692,7 +711,7 @@ pub struct DiceResult {
     total: i64,
 }
 
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 /// A `BonusResult` is a collection of all the static modifiers (boni) in a dice bag and their total.
 pub struct BonusResult {
     boni: Vec<i64>,
@@ -718,8 +737,12 @@ impl DiceResult {
     /// NB, the total is calculated within the function.
     fn new(dice: &Dice, results: Vec<i64>) -> Self {
         let dice = dice.to_owned();
-        let total = dice.op.operate(0, results.iter().fold(0,|acc,x| acc + x));
-        DiceResult { dice, results, total, }
+        let total = dice.op.operate(0, results.iter().sum());
+        DiceResult {
+            dice,
+            results,
+            total,
+        }
     }
 
     /// Gets the result of a roll of a Rolled `DiceGroup`.
@@ -728,7 +751,7 @@ impl DiceResult {
     }
 }
 
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RollResults {
     dice_groups: Vec<DiceResult>,
     bonus: BonusResult,
@@ -747,16 +770,16 @@ impl RollResults {
 
     /// Add the roll result from the roll of a `Dice`.
     fn add_dice_result(&mut self, dice: DiceResult) {
-        self.total+= dice.total;
+        self.total += dice.total;
         self.dice_groups.push(dice);
     }
 
     /// Add to bonus. NB: The +/- from `DiceOp` is calculated in the function.
     fn add_to_bonus(&mut self, b: &Bonus) {
-        let Bonus {bonus, op, } = b;
+        let Bonus { bonus, op } = b;
         let sub_total = op.operate(self.bonus.total, *bonus);
-        self.bonus.total+= sub_total;
-        self.total+= sub_total;
+        self.bonus.total += sub_total;
+        self.total += sub_total;
         self.bonus.boni.push(*bonus);
     }
 
@@ -824,14 +847,13 @@ impl RollResults {
     }
 }
 
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DiceBag {
     pub(crate) dice: Vec<DiceGroup>,
     pub(crate) range: MinMax,
 }
 
 impl DiceBag {
-
     /// Create a distribution for a dice set from a vector of 'DiceGroup's.
     /// ```
     /// use libazdice::distribution::*;
@@ -851,7 +873,7 @@ impl DiceBag {
     pub fn from_dice(dice: Vec<DiceGroup>) -> DiceBag {
         let mut dist = DiceBag {
             dice,
-            range: MinMax([0,0]),
+            range: MinMax([0, 0]),
         };
         dist.calculate_range();
         dist
@@ -859,7 +881,7 @@ impl DiceBag {
 
     /// Calculates a range for a distribution.
     pub(crate) fn calculate_range(&mut self) {
-        let range = self.dice.iter().fold([0;2],|mut acc,x| {
+        let range = self.dice.iter().fold([0; 2], |mut acc, x| {
             x.add_to_range(&mut acc);
             acc
         });
@@ -889,43 +911,64 @@ impl DiceBag {
         // NB: Will need serious reworking for multiplication and division.
         let mut final_result = RollResults::new_empty();
         for x in self.dice.iter() {
-            match x {
-                &DiceGroup::Bonus(ref b) => final_result.add_to_bonus(b),
-                &DiceGroup::Dice(ref d) => {
-
-                    let Dice { size, count, ref drop, ref reroll, ref cutoff, op: _, explosive } = d;
+            match *x {
+                DiceGroup::Bonus(ref b) => final_result.add_to_bonus(b),
+                DiceGroup::Dice(ref d) => {
+                    let Dice {
+                        size,
+                        count,
+                        ref drop,
+                        ref reroll,
+                        ref cutoff,
+                        op: _,
+                        explosive,
+                    } = d;
                     // Roll all the dice.
-                    let mut answer = std::iter::repeat(0).take(*count).map(|_| {
-                        let mut result = Vec::new();
-                        if !explosive {
-                            let roll = rand::thread_rng().gen_range(1,size+1);
-                            result.push(roll);
-                        }else{
-                            explode(&mut result,* size);
-                        }
-                        result
-                    }).flatten().collect::<Vec<_>>();
+                    let mut answer = std::iter::repeat(0)
+                        .take(*count)
+                        .map(|_| {
+                            let mut result = Vec::new();
+                            if !explosive {
+                                let roll = rand::thread_rng().gen_range(1, size + 1);
+                                result.push(roll);
+                            } else {
+                                explode(&mut result, *size);
+                            }
+                            result
+                        })
+                        .flatten()
+                        .collect::<Vec<_>>();
 
                     // Deal with the reroll clause.
                     let mut reroll_count = 0;
                     let mut answer_cycler = answer.iter_mut();
                     match reroll {
-                        ReRoll::IfAbove(ReRollType{ count, ex_threshold }) => {
+                        ReRoll::IfAbove(ReRollType {
+                            count,
+                            ex_threshold,
+                        }) => {
                             while let Some(ref mut roll) = answer_cycler.next() {
                                 if **roll > *ex_threshold {
-                                    **roll = rand::thread_rng().gen_range(1,size+1);
-                                    reroll_count+= 1;
+                                    **roll = rand::thread_rng().gen_range(1, size + 1);
+                                    reroll_count += 1;
                                 }
-                                if reroll_count == *count { break; }
+                                if reroll_count == *count {
+                                    break;
+                                }
                             }
                         }
-                        ReRoll::IfBelow(ReRollType{ count, ex_threshold }) => {
+                        ReRoll::IfBelow(ReRollType {
+                            count,
+                            ex_threshold,
+                        }) => {
                             while let Some(ref mut roll) = answer_cycler.next() {
                                 if **roll < *ex_threshold {
-                                    **roll = rand::thread_rng().gen_range(1,size+1);
-                                    reroll_count+= 1;
+                                    **roll = rand::thread_rng().gen_range(1, size + 1);
+                                    reroll_count += 1;
                                 }
-                                if reroll_count == *count { break; }
+                                if reroll_count == *count {
+                                    break;
+                                }
                             }
                         }
                         _ => {}
@@ -941,23 +984,29 @@ impl DiceBag {
                         // On drop lowest, drop the lowest N dice. Custom sorting is needed.
                         Drop::Lowest(n) => {
                             answer.sort_by(|n1, n2| n2.cmp(&n1));
-                            for _ in 0..*n { answer.pop(); }
+                            for _ in 0..*n {
+                                answer.pop();
+                            }
                             answer
                         }
                         // On highest, drop the highest N dice.
                         Drop::Highest(n) => {
                             answer.sort();
-                            for _ in 0..*n { answer.pop(); }
+                            for _ in 0..*n {
+                                answer.pop();
+                            }
                             answer
                         }
                         // On custom, take selected dice and put in new vector.
                         Drop::Custom(v) => {
                             answer.sort();
                             let mut output = Vec::with_capacity(v.len());
-                            for i in v.iter() { output.push(answer[*i]); }
+                            for i in v.iter() {
+                                output.push(answer[*i]);
+                            }
                             output
                         }
-                        _ => answer
+                        _ => answer,
                     };
 
                     final_result.add_dice_result(DiceResult::new(&d, answer));
@@ -998,16 +1047,15 @@ impl DiceBag {
     /// assert!(range == theoretical_range);
     /// ```
     pub fn get_range_as_list(&self) -> Vec<i64> {
-        let MinMax([min,max]) = self.range;
+        let MinMax([min, max]) = self.range;
         (min..max).collect::<Vec<_>>()
     }
 
     /// Used for building frequency distributions from multiple rolls.
-    pub(crate) fn get_range_as_btreemap(&self) -> BTreeMap<i64,usize> {
-        let MinMax([min,max]) = self.range;
-        (min..max).map(|i| (i,0)).collect::<BTreeMap<i64,usize>>()
+    pub(crate) fn get_range_as_btreemap(&self) -> BTreeMap<i64, usize> {
+        let MinMax([min, max]) = self.range;
+        (min..max).map(|i| (i, 0)).collect::<BTreeMap<i64, usize>>()
     }
-
 
     /// Make a probability distribution by count.
     /// ```
@@ -1024,15 +1072,15 @@ impl DiceBag {
     /// assert!(distribution.get(&3).is_none());
     /// assert!(distribution.get(&42).is_none());
     /// ```
-    pub fn make_count_distribution(&self, roll_count:usize) -> BTreeMap<i64,usize> {
+    pub fn make_count_distribution(&self, roll_count: usize) -> BTreeMap<i64, usize> {
         let mut range = self.get_range_as_btreemap();
         for _ in 0..roll_count {
             let roll = self.roll();
-            if let Some (c) = range.get_mut(&roll.total) {
-                *c+= 1;
-            }else{
+            if let Some(c) = range.get_mut(&roll.total) {
+                *c += 1;
+            } else {
                 // This is excessive in this codebase, but just in case.
-                range.insert(roll.total,1);
+                range.insert(roll.total, 1);
             }
         }
         range
@@ -1054,16 +1102,19 @@ impl DiceBag {
     /// assert!(distribution.get(&3).is_none());
     /// assert!(distribution.get(&42).is_none());
     /// ```
-    pub fn make_frequency_distribution(&self, roll_count:usize) -> BTreeMap<i64,f64> {
-        self.make_count_distribution(roll_count).into_iter().map(|(i,c)| {
-            (i,c as f64/roll_count as f64 * 100.0)
-        }).collect::<BTreeMap<i64,f64>>()
+    pub fn make_frequency_distribution(&self, roll_count: usize) -> BTreeMap<i64, f64> {
+        self.make_count_distribution(roll_count)
+            .into_iter()
+            .map(|(i, c)| (i, c as f64 / roll_count as f64 * 100.0))
+            .collect::<BTreeMap<i64, f64>>()
     }
 }
 
 /// A function to make explosive dice explode
 fn explode(vec: &mut Vec<i64>, max: i64) {
-    let roll = rand::thread_rng().gen_range(1,max+1);
+    let roll = rand::thread_rng().gen_range(1, max + 1);
     vec.push(roll);
-    if vec.last()==Some(&max) { explode(vec, max); }
+    if vec.last() == Some(&max) {
+        explode(vec, max);
+    }
 }

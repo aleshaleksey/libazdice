@@ -6,8 +6,9 @@ use std::result::Result;
 const CANT: &str = "Can't parse, won't parse!";
 
 /// an enum to store various parsing groups dynamically.
-#[derive(Debug,Clone,PartialEq)]
-enum ModifierGroup {    // The number is just there as demo.
+#[derive(Debug, Clone, PartialEq)]
+enum ModifierGroup {
+    // The number is just there as demo.
     DropLowest(usize),  // dl2
     KeepHighest(usize), // kh2
     DropHighest(usize), // dh2
@@ -20,15 +21,15 @@ enum ModifierGroup {    // The number is just there as demo.
 }
 
 // A bunch of constants to define additional modifiers.
-const DL: &str = "dl";  // DropLowest (KeepHighest)
-const KH: &str = "kh";  // KeepHighest
-const DH: &str = "dh";  // DropHighest
-const KL: &str = "kl";  // KeepLowest (DropLowest)
-const RR: &str = "rr";  // ReRoll
-const AB: &str = "ab";  // Above
-const BE: &str = "be";  // Below
-const MX: &str = "mx";  // MaximumOf
-const MN: &str = "mn";  // MinimumOf
+const DL: &str = "dl"; // DropLowest (KeepHighest)
+const KH: &str = "kh"; // KeepHighest
+const DH: &str = "dh"; // DropHighest
+const KL: &str = "kl"; // KeepLowest (DropLowest)
+const RR: &str = "rr"; // ReRoll
+const AB: &str = "ab"; // Above
+const BE: &str = "be"; // Below
+const MX: &str = "mx"; // MaximumOf
+const MN: &str = "mn"; // MinimumOf
 
 // The logic of the parser is to consecutively split the string:
 // 1) Split by operation to make dicegroups.
@@ -75,18 +76,21 @@ const MN: &str = "mn";  // MinimumOf
 /// }
 /// assert!(count_of_rolls_between_8_and_16 > 0);
 /// ```
-pub fn parse(input:String) -> Result<DiceBag,String> {
+pub fn parse(input: String) -> Result<DiceBag, String> {
     // Lowercase the string for simplicity.
     let input = input.to_lowercase();
 
     // Remove spaces and other crud.
-    let input = input.chars().filter(|c| !c.is_whitespace() && !c.is_control()).collect::<String>();
+    let input = input
+        .chars()
+        .filter(|c| !c.is_whitespace() && !c.is_control())
+        .collect::<String>();
 
     //Initial check.
     let chars = input.chars();
     for c in chars {
         if !valid_chars(c) {
-            return Result::Err(format!("Input contained invalid character ({}).",c));
+            return Result::Err(format!("Input contained invalid character ({}).", c));
         }
     }
 
@@ -101,18 +105,18 @@ pub fn parse(input:String) -> Result<DiceBag,String> {
 }
 
 /// Splits a whitespaceless String into ops.
-pub(crate) fn map_ops_and_parse(input:String) -> Result<Vec<DiceGroup>,String> {
-    let ops = std::iter::repeat(DiceOp::Add).take(1).chain(
-        input.chars().filter_map(|c|char_to_op(c))
-    );
+pub(crate) fn map_ops_and_parse(input: String) -> Result<Vec<DiceGroup>, String> {
+    let ops = std::iter::repeat(DiceOp::Add)
+        .take(1)
+        .chain(input.chars().filter_map(char_to_op));
 
-    let groups = input.split(|c| (c=='+')||(c=='-'));
-    if groups.clone().count()==0 {
+    let groups = input.split(|c| (c == '+') || (c == '-'));
+    if groups.clone().count() == 0 {
         // A little parsing on the side.
         return Result::Err("Input contains no valid dice groups.".to_owned());
     }
     let mut output = Vec::with_capacity(groups.clone().count());
-    for (op,group) in ops.zip(groups) {
+    for (op, group) in ops.zip(groups) {
         let mut dice_group = parse_string_to_dicegroup2(group)?;
         dice_group.add_op(op);
         output.push(dice_group);
@@ -130,13 +134,13 @@ pub(crate) fn map_ops_and_parse(input:String) -> Result<Vec<DiceGroup>,String> {
 // 4.5) Check for undesired groups and for possibility of parsing in between values.
 // 5) Parse various clauses.
 
-fn parse_string_to_dicegroup2(input:&str) -> Result<DiceGroup,String> {
+fn parse_string_to_dicegroup2(input: &str) -> Result<DiceGroup, String> {
     // Check for pure number. Then we have a bonus.
     let mut input = input.to_owned();
-    if !input.contains(|c:char| !c.is_numeric()) {
+    if !input.contains(|c: char| !c.is_numeric()) {
         return match input.parse::<i64>() {
             Ok(n) => Ok(DiceGroup::bonus(n)),
-            Err(e) => Result::Err(format!("Could not parse dice: {:?}",e)),
+            Err(e) => Result::Err(format!("Could not parse dice: {:?}", e)),
         };
     }
 
@@ -148,10 +152,10 @@ fn parse_string_to_dicegroup2(input:&str) -> Result<DiceGroup,String> {
         ));
     }
 
-    let explosive = if input.chars().last()==Some('!') {
+    let explosive = if input.ends_with('!') {
         input.pop();
         true
-    }else{
+    } else {
         false
     };
 
@@ -162,8 +166,11 @@ fn parse_string_to_dicegroup2(input:&str) -> Result<DiceGroup,String> {
     if let Some(c) = remainder.chars().next() {
         // If the first character aint a letter, something's wrong. Very, very wrong.
         if !is_letter(c) {
-            return Err(format!("Modifiers must start with a letter but start with ({}). {}",c, CANT));
-        }else if let DiceGroup::Bonus(_) = base_dice {
+            return Err(format!(
+                "Modifiers must start with a letter but start with ({}). {}",
+                c, CANT
+            ));
+        } else if let DiceGroup::Bonus(_) = base_dice {
             return Err(format!("A bonus must not have modifiers! {}", CANT));
         }
     } else {
@@ -180,10 +187,7 @@ fn parse_string_to_dicegroup2(input:&str) -> Result<DiceGroup,String> {
 /// A function which deals with the tail group eg "dl6dh3rr3be3mn2"
 /// Strategy:
 /// Split the group into letter and number groups. Zip and decode each one.
-fn parse_conditional_clauses(
-    input:String,
-    base_dice: &mut Dice
-) -> Result<(), String> {
+fn parse_conditional_clauses(input: String, base_dice: &mut Dice) -> Result<(), String> {
     let mut list_cond: Vec<String> = Vec::new();
     let mut list_num: Vec<String> = Vec::new();
 
@@ -192,7 +196,9 @@ fn parse_conditional_clauses(
         // Letters stage.
         let (in_l, rem) = take_until_nx(input2, 1, &is_numeric);
         list_cond.push(in_l);
-        if rem.is_empty() { break; }
+        if rem.is_empty() {
+            break;
+        }
         // Numbers stage.
         let (in2, rem) = take_until_nx(rem, 2, &is_letter);
         list_num.push(in2);
@@ -222,16 +228,16 @@ fn make_group(num: String, cond: String) -> Result<ModifierGroup, String> {
     let n = num.parse::<usize>().map_err(|e| e.to_string())?;
 
     let group = match cond.as_str() {
-         DL => ModifierGroup::DropLowest(n),
-         KH => ModifierGroup::KeepHighest(n),
-         KL => ModifierGroup::KeepLowest(n),
-         DH => ModifierGroup::DropHighest(n),
-         RR => ModifierGroup::ReRollCount(n),
-         AB => ModifierGroup::ReRollAbove(n as i64),
-         BE => ModifierGroup::ReRollBelow(n as i64),
-         MX => ModifierGroup::CutOffMaximum(n as i64),
-         MN => ModifierGroup::CutOffMinimum(n as i64),
-         _  => return Err(format!("({}{}) not a valid modifier. {}", cond, n, CANT)),
+        DL => ModifierGroup::DropLowest(n),
+        KH => ModifierGroup::KeepHighest(n),
+        KL => ModifierGroup::KeepLowest(n),
+        DH => ModifierGroup::DropHighest(n),
+        RR => ModifierGroup::ReRollCount(n),
+        AB => ModifierGroup::ReRollAbove(n as i64),
+        BE => ModifierGroup::ReRollBelow(n as i64),
+        MX => ModifierGroup::CutOffMaximum(n as i64),
+        MN => ModifierGroup::CutOffMinimum(n as i64),
+        _ => return Err(format!("({}{}) not a valid modifier. {}", cond, n, CANT)),
     };
     Ok(group)
 }
@@ -251,34 +257,54 @@ fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
         'drop_loop: for mod_group in mods.iter() {
             match mod_group {
                 DropLowest(n) => {
-                    if had_lowest { return Err(format!("Multiple (dl/kh) clauses found! {}!", CANT)); }
+                    if had_lowest {
+                        return Err(format!("Multiple (dl/kh) clauses found! {}!", CANT));
+                    }
                     had_lowest = true;
                     if die.count <= *n {
-                        return Err(format!("Keeping more dice than you have({} vs {})! {}!", n, die.count, CANT));
+                        return Err(format!(
+                            "Keeping more dice than you have({} vs {})! {}!",
+                            n, die.count, CANT
+                        ));
                     }
                     drop_lowest = Drop::Lowest(*n);
                 }
                 KeepHighest(n) => {
-                    if had_lowest { return Err(format!("Multiple (dl/kh) clauses found! {}!", CANT)); }
+                    if had_lowest {
+                        return Err(format!("Multiple (dl/kh) clauses found! {}!", CANT));
+                    }
                     had_lowest = true;
                     if die.count <= *n {
-                        return Err(format!("Keeping more dice than you have({} vs {})! {}!", n, die.count, CANT));
+                        return Err(format!(
+                            "Keeping more dice than you have({} vs {})! {}!",
+                            n, die.count, CANT
+                        ));
                     }
                     drop_lowest = Drop::Lowest(die.count - *n);
                 }
                 DropHighest(n) => {
-                    if had_highest { return Err(format!("Multiple (dh/kl) clauses found! {}!", CANT)); }
+                    if had_highest {
+                        return Err(format!("Multiple (dh/kl) clauses found! {}!", CANT));
+                    }
                     had_highest = true;
                     if die.count <= *n {
-                        return Err(format!("Keeping more dice than you have({} vs {})! {}!", n, die.count, CANT));
+                        return Err(format!(
+                            "Keeping more dice than you have({} vs {})! {}!",
+                            n, die.count, CANT
+                        ));
                     }
                     drop_highest = Drop::Highest(*n);
                 }
                 KeepLowest(n) => {
-                    if had_highest { return Err(format!("Multiple (dh/kl) clauses found! {}!", CANT)); }
+                    if had_highest {
+                        return Err(format!("Multiple (dh/kl) clauses found! {}!", CANT));
+                    }
                     had_highest = true;
                     if die.count <= *n {
-                        return Err(format!("Keeping more dice than you have({} vs {})! {}!", n, die.count, CANT));
+                        return Err(format!(
+                            "Keeping more dice than you have({} vs {})! {}!",
+                            n, die.count, CANT
+                        ));
                     }
                     drop_highest = Drop::Highest(die.count - *n);
                 }
@@ -293,11 +319,16 @@ fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
             (Drop::Highest(n), Drop::Non) => die.add_drop(Drop::highest(n)),
             (Drop::Highest(n), Drop::Lowest(m)) => {
                 if m + n >= die.count {
-                    return Err(format!("Dropping more dice than you have({} vs {})! {}!", n + m, die.count, CANT));
+                    return Err(format!(
+                        "Dropping more dice than you have({} vs {})! {}!",
+                        n + m,
+                        die.count,
+                        CANT
+                    ));
                 }
                 let drop_vector = ((m)..(die.count - n)).collect::<Vec<_>>();
                 die.add_drop(Drop::custom(drop_vector));
-            },
+            }
             _ => return Err("Impossible drop combo. How'd you do it?".to_owned()),
         }
     }
@@ -312,7 +343,10 @@ fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
                 ModifierGroup::ReRollCount(n) => {
                     if count.is_none() {
                         if die.count < *n {
-                            return Err(format!("Re-rolling more dice than you have({} vs {})! {}!", n, die.count, CANT));
+                            return Err(format!(
+                                "Re-rolling more dice than you have({} vs {})! {}!",
+                                n, die.count, CANT
+                            ));
                         }
                         count = Some(*n);
                     } else {
@@ -323,7 +357,10 @@ fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
                     above = true;
                     if ex_threshold.is_none() {
                         if die.size <= *x {
-                            return Err(format!("Re-rolling more dice than you have({} vs {})! {}!", x, die.size, CANT));
+                            return Err(format!(
+                                "Re-rolling more dice than you have({} vs {})! {}!",
+                                x, die.size, CANT
+                            ));
                         }
                         ex_threshold = Some(*x);
                     } else {
@@ -333,7 +370,10 @@ fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
                 ModifierGroup::ReRollBelow(x) => {
                     if ex_threshold.is_none() {
                         if 1 >= *x {
-                            return Err(format!("Re-rolling more dice than you have({} vs {})! {}!", x, die.count, CANT));
+                            return Err(format!(
+                                "Re-rolling more dice than you have({} vs {})! {}!",
+                                x, die.count, CANT
+                            ));
                         }
                         ex_threshold = Some(*x);
                     } else {
@@ -346,14 +386,16 @@ fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
         }
 
         match (count, ex_threshold) {
-            (None, Some(_))|(Some(_), None) => {
+            (None, Some(_)) | (Some(_), None) => {
                 return Err(format!("Incomplete reroll clause: {}", CANT));
             }
-            (Some(n), Some(x)) => if above {
-                die.add_reroll_if_above(x, n);
-            } else {
-                die.add_reroll_if_below(x, n);
-            },
+            (Some(n), Some(x)) => {
+                if above {
+                    die.add_reroll_if_above(x, n);
+                } else {
+                    die.add_reroll_if_below(x, n);
+                }
+            }
             _ => {}
         }
     }
@@ -365,16 +407,26 @@ fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
         'cutoff_loop: for mod_group in mods.iter() {
             match mod_group {
                 ModifierGroup::CutOffMaximum(x) => {
-                    if cutoff_max != CutOff::Non { return Err(format!("Multiple cutoff clauses found! {}!", CANT)); }
+                    if cutoff_max != CutOff::Non {
+                        return Err(format!("Multiple cutoff clauses found! {}!", CANT));
+                    }
                     if (die.size <= *x) || (*x < 1) {
-                        return Err(format!("Cut-off Maximum is ridiculous ({} for a d{}). {}.",x, die.size, CANT));
+                        return Err(format!(
+                            "Cut-off Maximum is ridiculous ({} for a d{}). {}.",
+                            x, die.size, CANT
+                        ));
                     }
                     cutoff_max = CutOff::Maximum(*x);
                 }
                 ModifierGroup::CutOffMinimum(x) => {
-                    if cutoff_min != CutOff::Non { return Err(format!("Multiple cutoff clauses found! {}!", CANT)); }
+                    if cutoff_min != CutOff::Non {
+                        return Err(format!("Multiple cutoff clauses found! {}!", CANT));
+                    }
                     if (die.size < *x) || (*x <= 1) {
-                        return Err(format!("Cut-off Minimum is ridiculous ({} for a d{}). {}.",x, die.size, CANT));
+                        return Err(format!(
+                            "Cut-off Minimum is ridiculous ({} for a d{}). {}.",
+                            x, die.size, CANT
+                        ));
                     }
                     cutoff_min = CutOff::Minimum(*x);
                 }
@@ -382,17 +434,17 @@ fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
             }
         }
         let cutoff = match (cutoff_min, cutoff_max) {
-                (CutOff::Non, CutOff::Non) => CutOff::Non,
-                (CutOff::Minimum(x), CutOff::Non) => CutOff::Minimum(x),
-                (CutOff::Non, CutOff::Maximum(x)) => CutOff::Maximum(x),
-                (CutOff::Minimum(x), CutOff::Maximum(y)) => {
-                    if x > y {
-                        return Err(format!("Maximum is bigger than minimum. {}!", CANT));
-                    } else {
-                        CutOff::Both(MinMax([x, y]))
-                    }
+            (CutOff::Non, CutOff::Non) => CutOff::Non,
+            (CutOff::Minimum(x), CutOff::Non) => CutOff::Minimum(x),
+            (CutOff::Non, CutOff::Maximum(x)) => CutOff::Maximum(x),
+            (CutOff::Minimum(x), CutOff::Maximum(y)) => {
+                if x > y {
+                    return Err(format!("Maximum is bigger than minimum. {}!", CANT));
+                } else {
+                    CutOff::Both(MinMax([x, y]))
                 }
-                _ => return Err(format!("MinMax Error! {}!", CANT)),
+            }
+            _ => return Err(format!("MinMax Error! {}!", CANT)),
         };
 
         die.add_checked_cutoff(cutoff);
@@ -401,18 +453,22 @@ fn fill_dice(mods: Vec<ModifierGroup>, die: &mut Dice) -> Result<(), String> {
 }
 
 /// Needs to be done because rust is typed and I am not clever.
-fn is_letter(c:char) -> bool {
+fn is_letter(c: char) -> bool {
     c.is_alphabetic() && !c.is_numeric()
 }
 
 /// Needs to be done because rust is typed and I am not clever.
-fn is_numeric(c:char) -> bool {
+fn is_numeric(c: char) -> bool {
     c.is_numeric()
 }
 
 /// A nom-like function to split a string when N chars meet a certain condition.
 /// NB: This is a copy function. Also it is not quite good.
-fn take_until_nx(input:String, n:usize, fullfills_condition: &dyn Fn(char)->bool) -> (String,String) {
+fn take_until_nx(
+    input: String,
+    n: usize,
+    fullfills_condition: &dyn Fn(char) -> bool,
+) -> (String, String) {
     let input = input.chars().collect::<Vec<char>>();
 
     let mut base_group = String::new();
@@ -424,7 +480,7 @@ fn take_until_nx(input:String, n:usize, fullfills_condition: &dyn Fn(char)->bool
 
     if input.len() < n {
         return (input.iter().collect::<String>(), tail);
-    } else if n==1 {
+    } else if n == 1 {
         let mut start_tail = input.len();
         for i in 0..input.len() {
             if !fullfills_condition(input[i]) {
@@ -440,10 +496,10 @@ fn take_until_nx(input:String, n:usize, fullfills_condition: &dyn Fn(char)->bool
         return (base_group, tail);
     }
     // First part.
-    'outer: for i in 0..(input.len()-n) {
+    'outer: for i in 0..(input.len() - n) {
         let mut done = true;
         'inner: for j in 0..n {
-            if !fullfills_condition(input[i+j]) {
+            if !fullfills_condition(input[i + j]) {
                 done = false;
                 break 'inner;
             }
@@ -459,7 +515,7 @@ fn take_until_nx(input:String, n:usize, fullfills_condition: &dyn Fn(char)->bool
 
     // Second part
     if !over {
-        for i in (input.len()-n)..input.len() {
+        for i in (input.len() - n)..input.len() {
             base_group.push(input[i]);
         }
         tail_start = input.len();
@@ -479,7 +535,7 @@ fn has_d_numeric(checked: &str) -> bool {
     // The fact that the string might be longer is irrelevant. We are using `Option`.
     while let Some(c1) = chars.next() {
         if let Some(c2) = chars.peek() {
-            if (c1=='d') && c2.is_numeric() {
+            if (c1 == 'd') && c2.is_numeric() {
                 return true;
             }
         }
@@ -488,46 +544,44 @@ fn has_d_numeric(checked: &str) -> bool {
 }
 
 /// NB: Must not be a bonus. Must be "dX" or "YdX".
-fn parse_base_dice2(base_group: String) -> Result<DiceGroup,String> {
+fn parse_base_dice2(base_group: String) -> Result<DiceGroup, String> {
     // If we have a `d` (eg `2d6`), try to parse it as such.
     let splits = base_group.split('d').collect::<Vec<_>>();
     if splits.len() != 2 {
         // only one `d` is allowed in `XdY`.
-        return Result::Err(format!("({}) is not",base_group));
+        return Result::Err(format!("({}) is not", base_group));
     }
 
     // If format `d20` is used, this is assumed to be `1d20`.
     let counts = if let Ok(n) = splits[0].parse::<usize>() {
         n
-    } else if splits[0].chars().count()==0 {
+    } else if splits[0].chars().count() == 0 {
         1
     } else {
-        return Result::Err(format!("Could not parse dice: {:?}",base_group));
+        return Result::Err(format!("Could not parse dice: {:?}", base_group));
     };
 
     // anything afer the `d` is the dice size.
     let size = if let Ok(n) = splits[1].parse::<i64>() {
         n
     } else {
-        return Result::Err(format!("Could not parse dice: {:?}",base_group));
+        return Result::Err(format!("Could not parse dice: {:?}", base_group));
     };
 
-    Ok(DiceGroup::dice(size,counts))
+    Ok(DiceGroup::dice(size, counts))
 }
 
-
-fn char_to_op(char:char) -> Option<DiceOp> {
+fn char_to_op(char: char) -> Option<DiceOp> {
     match char {
         '+' => Some(DiceOp::Add),
         '-' => Some(DiceOp::Sub),
-        _ => None
+        _ => None,
     }
 }
 
-
-fn valid_chars(c:char) -> bool {
+fn valid_chars(c: char) -> bool {
     match c {
-        '+'|'-'|'d'|'l'|'k'|'x'|'h'|'r'|'b'|'e'|'a'|'m'|'!'|'n' => true,
+        '+' | '-' | 'd' | 'l' | 'k' | 'x' | 'h' | 'r' | 'b' | 'e' | 'a' | 'm' | '!' | 'n' => true,
         c => c.is_numeric(),
     }
 }

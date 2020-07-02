@@ -8,47 +8,48 @@ fn zero_test() {
 }
 
 #[cfg(test)]
-fn single_parse_inner(size:i64) {
-    let input = format!("d{}",size);
+fn single_parse_inner(size: i64) {
+    let input = format!("d{}", size);
 
     let dice_bag = parse::parse(input).expect("should parse");
 
-    assert_eq!(dice_bag.range,MinMax([1,size]));
+    assert_eq!(dice_bag.range, MinMax([1, size]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
-                size: size,
-                count: 1,
-                drop: Drop::Non,
-                cutoff: CutOff::Non,
-                reroll: ReRoll::Never,
-                op: DiceOp::Add,
-                explosive: false,
-            }
-    )]);
+        vec![DiceGroup::Dice(Dice {
+            size: size,
+            count: 1,
+            drop: Drop::Non,
+            cutoff: CutOff::Non,
+            reroll: ReRoll::Never,
+            op: DiceOp::Add,
+            explosive: false,
+        })]
+    );
 }
 
 #[cfg(test)]
-fn simple_parse_inner(count:usize,size:i64) {
-    let input = format!("{}d{}",count,size);
+fn simple_parse_inner(count: usize, size: i64) {
+    let input = format!("{}d{}", count, size);
 
     let dice_bag = parse::parse(input).expect("should parse");
 
-    assert_eq!(dice_bag.range,MinMax([1*count as i64,count as i64*size]));
+    assert_eq!(
+        dice_bag.range,
+        MinMax([1 * count as i64, count as i64 * size])
+    );
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
-                size: size,
-                count: count,
-                drop: Drop::Non,
-                cutoff: CutOff::Non,
-                reroll: ReRoll::Never,
-                op: DiceOp::Add,
-                explosive: false,
-            }
-    )]);
+        vec![DiceGroup::Dice(Dice {
+            size: size,
+            count: count,
+            drop: Drop::Non,
+            cutoff: CutOff::Non,
+            reroll: ReRoll::Never,
+            op: DiceOp::Add,
+            explosive: false,
+        })]
+    );
 }
 
 #[test]
@@ -59,21 +60,20 @@ fn parse_3d20dl1dh1() {
     let dice_bag = parse::parse(input).expect("should parse");
     let dice_bag2 = parse::parse(input2).expect("should parse");
 
-    assert_eq!(dice_bag,dice_bag2);
-    assert_eq!(dice_bag.range,MinMax([1,20]));
+    assert_eq!(dice_bag, dice_bag2);
+    assert_eq!(dice_bag.range, MinMax([1, 20]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
-                size: 20,
-                count: 3,
-                drop: Drop::Custom(vec![1]),
-                cutoff: CutOff::Non,
-                reroll: ReRoll::Never,
-                op: DiceOp::Add,
-                explosive: false,
-            }
-    )]);
+        vec![DiceGroup::Dice(Dice {
+            size: 20,
+            count: 3,
+            drop: Drop::Custom(vec![1]),
+            cutoff: CutOff::Non,
+            reroll: ReRoll::Never,
+            op: DiceOp::Add,
+            explosive: false,
+        })]
+    );
 }
 
 #[test]
@@ -84,21 +84,20 @@ fn parse_5d20dl3() {
     let dice_bag = parse::parse(input).expect("should parse");
     let dice_bag2 = parse::parse(input2).expect("should parse");
 
-    assert_eq!(dice_bag,dice_bag2);
-    assert_eq!(dice_bag.range,MinMax([2,40]));
+    assert_eq!(dice_bag, dice_bag2);
+    assert_eq!(dice_bag.range, MinMax([2, 40]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
-                size: 20,
-                count: 5,
-                drop: Drop::Lowest(3),
-                cutoff: CutOff::Non,
-                reroll: ReRoll::Never,
-                op: DiceOp::Add,
-                explosive: false,
-            }
-    )]);
+        vec![DiceGroup::Dice(Dice {
+            size: 20,
+            count: 5,
+            drop: Drop::Lowest(3),
+            cutoff: CutOff::Non,
+            reroll: ReRoll::Never,
+            op: DiceOp::Add,
+            explosive: false,
+        })]
+    );
 }
 
 #[test]
@@ -109,21 +108,20 @@ fn parse_5d20dh3() {
     let dice_bag = parse::parse(input).expect("should parse");
     let dice_bag2 = parse::parse(input2).expect("should parse");
 
-    assert_eq!(dice_bag,dice_bag2);
-    assert_eq!(dice_bag.range,MinMax([2,40]));
+    assert_eq!(dice_bag, dice_bag2);
+    assert_eq!(dice_bag.range, MinMax([2, 40]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
-                size: 20,
-                count: 5,
-                drop: Drop::Highest(3),
-                cutoff: CutOff::Non,
-                reroll: ReRoll::Never,
-                op: DiceOp::Add,
-                explosive: false,
-            }
-    )]);
+        vec![DiceGroup::Dice(Dice {
+            size: 20,
+            count: 5,
+            drop: Drop::Highest(3),
+            cutoff: CutOff::Non,
+            reroll: ReRoll::Never,
+            op: DiceOp::Add,
+            explosive: false,
+        })]
+    );
 }
 
 #[test]
@@ -134,21 +132,20 @@ fn parse_12d20dl4dh3() {
     let dice_bag = parse::parse(input).expect("should parse");
     let dice_bag2 = parse::parse(input2).expect("should parse");
 
-    assert_eq!(dice_bag,dice_bag2);
-    assert_eq!(dice_bag.range,MinMax([5,100]));
+    assert_eq!(dice_bag, dice_bag2);
+    assert_eq!(dice_bag.range, MinMax([5, 100]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
-                size: 20,
-                count: 12,
-                drop: Drop::Custom(vec![4,5,6,7,8]),
-                cutoff: CutOff::Non,
-                reroll: ReRoll::Never,
-                op: DiceOp::Add,
-                explosive: false,
-            }
-    )]);
+        vec![DiceGroup::Dice(Dice {
+            size: 20,
+            count: 12,
+            drop: Drop::Custom(vec![4, 5, 6, 7, 8]),
+            cutoff: CutOff::Non,
+            reroll: ReRoll::Never,
+            op: DiceOp::Add,
+            explosive: false,
+        })]
+    );
 }
 
 #[test]
@@ -159,21 +156,23 @@ fn parse_15d20dl4dh3rr3be4() {
     let dice_bag = parse::parse(input).expect("should parse");
     let dice_bag2 = parse::parse(input2).expect("should parse");
 
-    assert_eq!(dice_bag,dice_bag2);
-    assert_eq!(dice_bag.range,MinMax([8,160]));
+    assert_eq!(dice_bag, dice_bag2);
+    assert_eq!(dice_bag.range, MinMax([8, 160]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
-                size: 20,
-                count: 15,
-                drop: Drop::Custom(vec![4,5,6,7,8,9,10,11]),
-                cutoff: CutOff::Non,
-                reroll: ReRoll::IfBelow(ReRollType{ count: 3, ex_threshold: 4, }),
-                op: DiceOp::Add,
-                explosive: false,
-            }
-    )]);
+        vec![DiceGroup::Dice(Dice {
+            size: 20,
+            count: 15,
+            drop: Drop::Custom(vec![4, 5, 6, 7, 8, 9, 10, 11]),
+            cutoff: CutOff::Non,
+            reroll: ReRoll::IfBelow(ReRollType {
+                count: 3,
+                ex_threshold: 4,
+            }),
+            op: DiceOp::Add,
+            explosive: false,
+        })]
+    );
 }
 
 #[test]
@@ -184,21 +183,23 @@ fn parse_15d20dl4dh3rr3ab4mn2() {
     let dice_bag = parse::parse(input).expect("should parse");
     let dice_bag2 = parse::parse(input2).expect("should parse");
 
-    assert_eq!(dice_bag,dice_bag2);
-    assert_eq!(dice_bag.range,MinMax([16,160]));
+    assert_eq!(dice_bag, dice_bag2);
+    assert_eq!(dice_bag.range, MinMax([16, 160]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
-                size: 20,
-                count: 15,
-                drop: Drop::Custom(vec![4,5,6,7,8,9,10,11]),
-                cutoff: CutOff::Minimum(2),
-                reroll: ReRoll::IfAbove(ReRollType{ count: 3, ex_threshold: 4, }),
-                op: DiceOp::Add,
-                explosive: false,
-            }
-    )]);
+        vec![DiceGroup::Dice(Dice {
+            size: 20,
+            count: 15,
+            drop: Drop::Custom(vec![4, 5, 6, 7, 8, 9, 10, 11]),
+            cutoff: CutOff::Minimum(2),
+            reroll: ReRoll::IfAbove(ReRollType {
+                count: 3,
+                ex_threshold: 4,
+            }),
+            op: DiceOp::Add,
+            explosive: false,
+        })]
+    );
 }
 
 #[test]
@@ -209,21 +210,23 @@ fn parse_15d20dl4dh3rr3ab4mn2mx18() {
     let dice_bag = parse::parse(input).expect("should parse");
     let dice_bag2 = parse::parse(input2).expect("should parse");
 
-    assert_eq!(dice_bag,dice_bag2);
-    assert_eq!(dice_bag.range,MinMax([16,144]));
+    assert_eq!(dice_bag, dice_bag2);
+    assert_eq!(dice_bag.range, MinMax([16, 144]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
-                size: 20,
-                count: 15,
-                drop: Drop::Custom(vec![4,5,6,7,8,9,10,11]),
-                cutoff: CutOff::Both(MinMax([2,18])),
-                reroll: ReRoll::IfAbove(ReRollType{ count: 3, ex_threshold: 4, }),
-                op: DiceOp::Add,
-                explosive: false,
-            }
-    )]);
+        vec![DiceGroup::Dice(Dice {
+            size: 20,
+            count: 15,
+            drop: Drop::Custom(vec![4, 5, 6, 7, 8, 9, 10, 11]),
+            cutoff: CutOff::Both(MinMax([2, 18])),
+            reroll: ReRoll::IfAbove(ReRollType {
+                count: 3,
+                ex_threshold: 4,
+            }),
+            op: DiceOp::Add,
+            explosive: false,
+        })]
+    );
 }
 
 #[test]
@@ -234,7 +237,7 @@ fn parse_15d20dl4dh3rr3ab4mn15mx5() {
     let dice_bag = parse::parse(input);
     let dice_bag2 = parse::parse(input2);
 
-    assert_eq!(dice_bag,dice_bag2);
+    assert_eq!(dice_bag, dice_bag2);
     assert!(dice_bag.is_err());
 }
 
@@ -246,21 +249,23 @@ fn parse_15d20dl4dh3rr3ab4mn2_explosive() {
     let dice_bag = parse::parse(input).expect("should parse");
     let dice_bag2 = parse::parse(input2).expect("should parse");
 
-    assert_eq!(dice_bag,dice_bag2);
-    assert_eq!(dice_bag.range,MinMax([16,160]));
+    assert_eq!(dice_bag, dice_bag2);
+    assert_eq!(dice_bag.range, MinMax([16, 160]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
-                size: 20,
-                count: 15,
-                drop: Drop::Custom(vec![4,5,6,7,8,9,10,11]),
-                cutoff: CutOff::Minimum(2),
-                reroll: ReRoll::IfAbove(ReRollType{ count: 3, ex_threshold: 4, }),
-                op: DiceOp::Add,
-                explosive: true,
-            }
-    )]);
+        vec![DiceGroup::Dice(Dice {
+            size: 20,
+            count: 15,
+            drop: Drop::Custom(vec![4, 5, 6, 7, 8, 9, 10, 11]),
+            cutoff: CutOff::Minimum(2),
+            reroll: ReRoll::IfAbove(ReRollType {
+                count: 3,
+                ex_threshold: 4,
+            }),
+            op: DiceOp::Add,
+            explosive: true,
+        })]
+    );
 }
 
 #[test]
@@ -281,11 +286,11 @@ fn parse_7d23_plus_11() {
 
     let dice_bag = parse::parse(input).expect("should parse");
 
-    assert_eq!(dice_bag.range,MinMax([18,172]));
+    assert_eq!(dice_bag.range, MinMax([18, 172]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
+        vec![
+            DiceGroup::Dice(Dice {
                 size: 23,
                 count: 7,
                 drop: Drop::Non,
@@ -298,7 +303,8 @@ fn parse_7d23_plus_11() {
                 bonus: 11,
                 op: DiceOp::Add,
             }),
-    ]);
+        ]
+    );
 }
 
 #[test]
@@ -307,11 +313,11 @@ fn parse_7d23_explosive_plus_11() {
 
     let dice_bag = parse::parse(input).expect("should parse");
 
-    assert_eq!(dice_bag.range,MinMax([18,172]));
+    assert_eq!(dice_bag.range, MinMax([18, 172]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
+        vec![
+            DiceGroup::Dice(Dice {
                 size: 23,
                 count: 7,
                 drop: Drop::Non,
@@ -324,7 +330,8 @@ fn parse_7d23_explosive_plus_11() {
                 bonus: 11,
                 op: DiceOp::Add,
             }),
-    ]);
+        ]
+    );
 }
 
 #[test]
@@ -342,11 +349,11 @@ fn parse_7d23_minus_11() {
 
     let dice_bag = parse::parse(input).expect("should parse");
 
-    assert_eq!(dice_bag.range,MinMax([-4,150]));
+    assert_eq!(dice_bag.range, MinMax([-4, 150]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-            Dice {
+        vec![
+            DiceGroup::Dice(Dice {
                 size: 23,
                 count: 7,
                 drop: Drop::Non,
@@ -359,7 +366,8 @@ fn parse_7d23_minus_11() {
                 bonus: 11,
                 op: DiceOp::Sub,
             }),
-    ]);
+        ]
+    );
 }
 
 #[test]
@@ -367,7 +375,7 @@ fn parse_10d6dl11_fail() {
     let input = "10d6dl11".to_owned();
 
     let dice_bag = parse::parse(input);
-    println!("Failed dice_bag: {:?}",dice_bag);
+    println!("Failed dice_bag: {:?}", dice_bag);
     assert!(dice_bag.is_err());
 }
 
@@ -376,7 +384,7 @@ fn parse_10d6kl11_fail() {
     let input = "10d6kl11".to_owned();
 
     let dice_bag = parse::parse(input);
-    println!("Failed dice_bag: {:?}",dice_bag);
+    println!("Failed dice_bag: {:?}", dice_bag);
     assert!(dice_bag.is_err());
 }
 
@@ -386,30 +394,30 @@ fn parse_5d6_minus_10d10() {
 
     let dice_bag = parse::parse(input).expect("should parse");
 
-    assert_eq!(dice_bag.range,MinMax([-70,-5]));
+    assert_eq!(dice_bag.range, MinMax([-70, -5]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-                Dice {
-                    size: 6,
-                    count: 5,
-                    drop: Drop::Non,
-                    cutoff: CutOff::Non,
-                    reroll: ReRoll::Never,
-                    op: DiceOp::Add,
-                    explosive: false,
-                }),
-            DiceGroup::Dice(
-                Dice {
-                    size: 10,
-                    count: 10,
-                    drop: Drop::Non,
-                    cutoff: CutOff::Non,
-                    reroll: ReRoll::Never,
-                    op: DiceOp::Sub,
-                    explosive: false,
-                }),
-    ]);
+        vec![
+            DiceGroup::Dice(Dice {
+                size: 6,
+                count: 5,
+                drop: Drop::Non,
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
+                op: DiceOp::Add,
+                explosive: false,
+            }),
+            DiceGroup::Dice(Dice {
+                size: 10,
+                count: 10,
+                drop: Drop::Non,
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
+                op: DiceOp::Sub,
+                explosive: false,
+            }),
+        ]
+    );
 }
 
 #[test]
@@ -418,30 +426,30 @@ fn parse_5d6_minus_10d10_explosive() {
 
     let dice_bag = parse::parse(input).expect("should parse");
 
-    assert_eq!(dice_bag.range,MinMax([-70,-5]));
+    assert_eq!(dice_bag.range, MinMax([-70, -5]));
     assert_eq!(
         dice_bag.dice,
-        vec![DiceGroup::Dice(
-                Dice {
-                    size: 6,
-                    count: 5,
-                    drop: Drop::Non,
-                    cutoff: CutOff::Non,
-                    reroll: ReRoll::Never,
-                    op: DiceOp::Add,
-                    explosive: false,
-                }),
-            DiceGroup::Dice(
-                Dice {
-                    size: 10,
-                    count: 10,
-                    drop: Drop::Non,
-                    cutoff: CutOff::Non,
-                    reroll: ReRoll::Never,
-                    op: DiceOp::Sub,
-                    explosive: true,
-                }),
-    ]);
+        vec![
+            DiceGroup::Dice(Dice {
+                size: 6,
+                count: 5,
+                drop: Drop::Non,
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
+                op: DiceOp::Add,
+                explosive: false,
+            }),
+            DiceGroup::Dice(Dice {
+                size: 10,
+                count: 10,
+                drop: Drop::Non,
+                cutoff: CutOff::Non,
+                reroll: ReRoll::Never,
+                op: DiceOp::Sub,
+                explosive: true,
+            }),
+        ]
+    );
 }
 
 #[test]
@@ -483,42 +491,42 @@ fn parse_1d100_test_no_prefix() {
 
 #[test]
 fn parse_1d6_test() {
-    simple_parse_inner(1,6)
+    simple_parse_inner(1, 6)
 }
 
 #[test]
 fn parse_1d8_test() {
-    simple_parse_inner(1,8)
+    simple_parse_inner(1, 8)
 }
 
 #[test]
 fn parse_1d10_test() {
-    simple_parse_inner(1,10)
+    simple_parse_inner(1, 10)
 }
 
 #[test]
 fn parse_1d12_test() {
-    simple_parse_inner(1,12)
+    simple_parse_inner(1, 12)
 }
 
 #[test]
 fn parse_1d20_test() {
-    simple_parse_inner(1,20)
+    simple_parse_inner(1, 20)
 }
 
 #[test]
 fn parse_1d100_test() {
-    simple_parse_inner(1,100)
+    simple_parse_inner(1, 100)
 }
 
 #[test]
 fn parse_5d20_test() {
-    simple_parse_inner(5,20)
+    simple_parse_inner(5, 20)
 }
 
 #[test]
 fn parse_345d4653_test() {
-    simple_parse_inner(345,4653)
+    simple_parse_inner(345, 4653)
 }
 
 #[test]
@@ -529,9 +537,11 @@ fn parse_345d4653_test() {
 fn test_distribution_average_1d10() {
     let one_d_ten = super::parse("1d10".to_owned()).unwrap();
 
-    let mean = one_d_ten.make_count_distribution(50_000_000)
+    let mean = one_d_ten
+        .make_count_distribution(50_000_000)
         .into_iter()
-        .fold(0, |acc, (val, n)| acc + val * n as i64) as f64 / 50_000_000.0;
+        .fold(0, |acc, (val, n)| acc + val * n as i64) as f64
+        / 50_000_000.0;
 
     assert!((mean > 5.499) && (mean < 5.501));
 }
@@ -544,7 +554,8 @@ fn test_distribution_average_1d10() {
 fn test_distribution_frequency() {
     let one_d_ten = super::parse("1d10".to_owned()).unwrap();
 
-    let distribution = one_d_ten.make_frequency_distribution(50_000_000)
+    let distribution = one_d_ten
+        .make_frequency_distribution(50_000_000)
         .into_iter();
 
     for (_val, f) in distribution {
@@ -560,14 +571,14 @@ fn test_distribution_frequency() {
 fn test_random_clustering_d_ten() {
     let one_d_ten = super::parse("1d10".to_owned()).unwrap();
 
-    let mut chains =Vec::with_capacity(10_000_000);
+    let mut chains = Vec::with_capacity(10_000_000);
 
     let mut last_roll = 0;
     let mut last_chain = 0;
     for _ in 0..20_000_000 {
         let roll = one_d_ten.roll().total();
         if roll == last_roll {
-            last_chain+= 1;
+            last_chain += 1;
         } else {
             chains.push(last_chain);
             last_chain = 0;
@@ -576,17 +587,17 @@ fn test_random_clustering_d_ten() {
     }
 
     // NB 0 means 1 in a row. 1 means 2 in a row, 1 means 3 in a row and so on.
-    let zero = chains.iter().filter(|x| **x==0).count() as f64 / chains.len() as f64 * 100.0;
+    let zero = chains.iter().filter(|x| **x == 0).count() as f64 / chains.len() as f64 * 100.0;
     let zero = (zero > 89.95) && (zero < 90.05);
 
-    let one = chains.iter().filter(|x| **x>=1).count() as f64 / chains.len() as f64 * 100.0;
+    let one = chains.iter().filter(|x| **x >= 1).count() as f64 / chains.len() as f64 * 100.0;
     let one = (one > 9.8) && (one < 10.2);
 
-    let two = chains.iter().filter(|x| **x>=2).count() as f64 / chains.len() as f64 * 100.0;
+    let two = chains.iter().filter(|x| **x >= 2).count() as f64 / chains.len() as f64 * 100.0;
     let two = (two > 0.98) && (two < 1.02);
 
     // Statistics is weaker for small numbers.
-    let three = chains.iter().filter(|x| **x>=3).count() as f64 / chains.len() as f64 * 100.0;
+    let three = chains.iter().filter(|x| **x >= 3).count() as f64 / chains.len() as f64 * 100.0;
     let three = (three > 0.096) && (three < 0.104);
     assert!(zero && one && two && three);
 }

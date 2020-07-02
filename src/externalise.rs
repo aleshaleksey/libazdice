@@ -1,7 +1,7 @@
 //! This submodule is for externing various parts of the module to C or C++
 use super::parse::parse;
 
-use std::ffi::{CString,CStr};
+use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::ptr;
 
@@ -122,16 +122,20 @@ pub unsafe extern "C" fn parse_and_generate_distribution(
         return final_result;
     };
 
-    let dice = match parse(input_string.to_string()) {
+    let dice = match parse(input_string) {
         // Error is fully dealt with. If future me messes up the error message, this should catch.
         Err(e) => {
             let e: Vec<u8> = e.as_bytes().to_vec();
-            let e = if e.contains(&0) { b"Error parsing initial roll".to_vec() } else { e };
+            let e = if e.contains(&0) {
+                b"Error parsing initial roll".to_vec()
+            } else {
+                e
+            };
             let err = Box::new(CString::from_vec_unchecked(e));
             final_result.err = Box::into_raw(err);
             return final_result;
         }
-        Ok(r)=> r,
+        Ok(r) => r,
     };
 
     let mut roll_and_frequencies = dice
@@ -151,7 +155,7 @@ pub unsafe extern "C" fn parse_and_generate_distribution(
         rolls_and_frequency: roll_and_frequencies.as_mut_ptr(),
         count,
         len_input: l,
-        input: input.clone(),
+        input,
     };
 
     final_result.succ = Box::into_raw(Box::new(distribution));
@@ -176,7 +180,7 @@ pub unsafe extern "C" fn parse_and_generate_distribution(
 pub unsafe extern "C" fn parse_and_roll_n_times(
     input: &*const c_char,
     l: u64,
-    n: u64
+    n: u64,
 ) -> ResultListRolls {
     let input = input.to_owned();
 
@@ -195,16 +199,20 @@ pub unsafe extern "C" fn parse_and_roll_n_times(
         return final_result;
     };
 
-    let dice = match parse(input_string.to_string()) {
+    let dice = match parse(input_string) {
         // Error is fully dealt with. If future me messes up the error message, this should catch.
         Err(e) => {
             let e: Vec<u8> = e.as_bytes().to_vec();
-            let e = if e.contains(&0) { b"Error parsing initial roll".to_vec() } else { e };
+            let e = if e.contains(&0) {
+                b"Error parsing initial roll".to_vec()
+            } else {
+                e
+            };
             let err = Box::new(CString::from_vec_unchecked(e));
             final_result.err = Box::into_raw(err);
             return final_result;
         }
-        Ok(r)=> r,
+        Ok(r) => r,
     };
 
     let mut results = Vec::with_capacity(n as usize);
@@ -212,25 +220,25 @@ pub unsafe extern "C" fn parse_and_roll_n_times(
         results.push(dice.roll());
     }
 
-    let results:Vec<_> = results.iter().map(|res| {
-        let results: Vec<i64> = res.get_dice_groups().iter().map(|x|x.total()).collect();
+    let results: Vec<_> = results
+        .iter()
+        .map(|res| {
+            let results: Vec<i64> = res.get_dice_groups().iter().map(|x| x.total()).collect();
 
-        Rolls {
-            len_input: l,
-            input: input.clone(),
-            len_dice_groups: results.len() as u64,
-            groups: results.as_ptr(),
-            bonus: res.get_bonus().total() as i64,
-            total: res.total() as i64,
-        }
-    }).collect();
+            Rolls {
+                len_input: l,
+                input,
+                len_dice_groups: results.len() as u64,
+                groups: results.as_ptr(),
+                bonus: res.get_bonus().total() as i64,
+                total: res.total() as i64,
+            }
+        })
+        .collect();
     println!("Results construced!");
     let len = results.len() as u64;
     let results = results.as_ptr();
-    let results = Box::new(ListRolls {
-        len,
-        results,
-    });
+    let results = Box::new(ListRolls { len, results });
 
     final_result.succ = Box::into_raw(results);
     final_result
@@ -264,17 +272,21 @@ pub unsafe extern "C" fn parse_and_roll(input: &*const c_char) -> SingleRollResu
         return final_result;
     };
 
-    let dice = match parse(input_string.to_owned()) {
+    let dice = match parse(input_string) {
         Err(e) => {
             // An error at the parsing stage is good here.
             // Of course the error string must make sense.
             let e: Vec<u8> = e.as_bytes().to_vec();
-            let e = if e.contains(&0) { b"Error parsing initial roll".to_vec() } else { e };
+            let e = if e.contains(&0) {
+                b"Error parsing initial roll".to_vec()
+            } else {
+                e
+            };
             let err = Box::new(CString::from_vec_unchecked(e));
             final_result.err = Box::into_raw(err);
             return final_result;
         }
-        Ok(r)=> r,
+        Ok(r) => r,
     };
 
     final_result.roll = dice.roll().total() as i64;
@@ -294,21 +306,23 @@ pub unsafe extern "C" fn parse_and_roll(input: &*const c_char) -> SingleRollResu
 pub unsafe extern "C" fn parse_and_roll2(input: &*const c_char) -> i64 {
     let input = input.to_owned();
     // A little dangerous. But what can one expect from C-chan?
-    let input_string = CStr::from_ptr(input).to_str().expect("Poop").to_owned();
+    let input_string = CStr::from_ptr(input)
+        .to_str()
+        .expect("Can't make string.")
+        .to_owned();
 
-    let dice = match parse(input_string.to_string()) {
+    let dice = match parse(input_string) {
         // We return a number so we must simply crash if we could not parse the input.
-        Err(_e) => panic!("Panic! We can't parse!"),
-        Ok(r)=> r,
+        Err(e) => panic!("Panic! We can't parse! ({}).", e),
+        Ok(r) => r,
     };
-    let i = dice.roll().total();
-    i
+    dice.roll().total()
 }
 
 #[no_mangle]
 /// A test function for crossing ffi.
-pub extern "C" fn test(i:i64) -> *const c_char {
-    let string = format!("{}",i);
+pub extern "C" fn test(i: i64) -> *const c_char {
+    let string = format!("{}", i);
     let string = string.as_bytes();
     let string = Box::new(CString::new(string).unwrap());
     string.into_raw()
@@ -317,7 +331,9 @@ pub extern "C" fn test(i:i64) -> *const c_char {
 #[no_mangle]
 /// Another test function for crossing ffi.
 pub unsafe extern "C" fn test2(i: &*const c_char) -> i64 {
-    let input_string = CStr::from_ptr(*i).to_str().expect("Poop").to_owned();
-    let r = input_string.len() as i64;
-    r
+    let input_string = CStr::from_ptr(*i)
+        .to_str()
+        .expect("`test2` can't make string.")
+        .to_owned();
+    input_string.len() as i64
 }
