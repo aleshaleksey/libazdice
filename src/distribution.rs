@@ -7,6 +7,7 @@
 extern crate rand;
 use crate::distribution::rand::Rng;
 use std::collections::BTreeMap;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// A range.
@@ -1116,5 +1117,164 @@ fn explode(vec: &mut Vec<i64>, max: i64) {
     vec.push(roll);
     if vec.last() == Some(&max) {
         explode(vec, max);
+    }
+}
+
+impl Display for DiceBag {
+    /// Reverse parsing. Yay!
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut bonus: i64 = 0;
+
+        for i in 0..self.dice.len() {
+            match self.dice[i] {
+                DiceGroup::Dice(ref d) => {
+                    if (i != 0) && (d.op == DiceOp::Add) {
+                        write!(f, " + ")?;
+                    } else if (i != 0) && (d.op == DiceOp::Sub) {
+                        write!(f, " - ")?;
+                    }
+
+                    write!(f, "{}d{}", d.count, d.size)?;
+
+                    match d.drop {
+                        Drop::Highest(n) => {
+                            write!(f, "dh{}", n)?;
+                        }
+                        Drop::Lowest(n) => {
+                            write!(f, "dl{}", n)?;
+                        }
+                        Drop::Custom(ref v) => {
+                            if !v.is_empty() {
+                                let dh = v.last().expect("Checked.");
+                                let dl = v.first().expect("Checked.");
+                                write!(f, "dh{}dl{}", dh, dl)?;
+                            }
+                        }
+                        _ => {}
+                    }
+
+                    match d.reroll {
+                        ReRoll::IfAbove(ref x) => {
+                            write!(f, "rr{}ab{}", x.count, x.ex_threshold)?;
+                        }
+                        ReRoll::IfBelow(ref x) => {
+                            write!(f, "rr{}be{}", x.count, x.ex_threshold)?;
+                        }
+                        _ => {}
+                    }
+
+                    match d.cutoff {
+                        CutOff::Minimum(m) => {
+                            write!(f, "mn{}", m)?;
+                        }
+                        CutOff::Maximum(m) => {
+                            write!(f, "mx{}", m)?;
+                        }
+                        CutOff::Both(MinMax(mm)) => {
+                            write!(f, "mn{}mx{}", mm[0], mm[1])?;
+                        }
+                        _ => {}
+                    }
+
+                    if d.explosive {
+                        write!(f, "!")?;
+                    }
+                }
+                DiceGroup::Bonus(ref b) => {
+                    let op = if b.op == DiceOp::Add { 1 } else { -1 };
+                    bonus += op * b.bonus;
+                }
+            }
+        }
+
+        if bonus > 0 {
+            write!(f, " + {}", bonus.abs())?;
+        } else if bonus < 0 {
+            write!(f, " - {}", bonus.abs())?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for RollResults {
+    /// Reverse parsing. Yay!
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for i in 0..self.dice_groups.len() {
+            let d = &self.dice_groups[i].dice;
+            if (i != 0) && (d.op == DiceOp::Add) {
+                write!(f, " + ")?;
+            } else if (i != 0) && (d.op == DiceOp::Sub) {
+                write!(f, " - ")?;
+            }
+
+            write!(f, "{}d{}", d.count, d.size)?;
+
+            match d.drop {
+                Drop::Highest(n) => {
+                    write!(f, "dh{}", n)?;
+                }
+                Drop::Lowest(n) => {
+                    write!(f, "dl{}", n)?;
+                }
+                Drop::Custom(ref v) => {
+                    if !v.is_empty() {
+                        let dh = v.last().expect("Checked.");
+                        let dl = v.first().expect("Checked.");
+                        write!(f, "dh{}dl{}", dh, dl)?;
+                    }
+                }
+                _ => {}
+            }
+
+            match d.reroll {
+                ReRoll::IfAbove(ref x) => {
+                    write!(f, "rr{}ab{}", x.count, x.ex_threshold)?;
+                }
+                ReRoll::IfBelow(ref x) => {
+                    write!(f, "rr{}be{}", x.count, x.ex_threshold)?;
+                }
+                _ => {}
+            }
+
+            match d.cutoff {
+                CutOff::Minimum(m) => {
+                    write!(f, "mn{}", m)?;
+                }
+                CutOff::Maximum(m) => {
+                    write!(f, "mx{}", m)?;
+                }
+                CutOff::Both(MinMax(mm)) => {
+                    write!(f, "mn{}mx{}", mm[0], mm[1])?;
+                }
+                _ => {}
+            }
+
+            if d.explosive {
+                write!(f, "!")?;
+            }
+
+            write!(f, "( ")?;
+            for (i, x) in self.dice_groups[i].results.iter().enumerate() {
+                if (i != 0) && (*x < 0) {
+                    write!(f, " - {}", x.abs())?;
+                } else if i != 0 {
+                    write!(f, " + {}", x.abs())?;
+                } else if *x < 0 {
+                    write!(f, "(-{})", x.abs())?;
+                } else {
+                    write!(f, "{}", x.abs())?;
+                }
+            }
+            write!(f, " = {} )", self.dice_groups[i].total)?;
+        }
+
+        if self.bonus.total() > 0 {
+            write!(f, " + {}", self.bonus.total().abs())?;
+        } else if self.bonus.total() < 0 {
+            write!(f, " - {}", self.bonus.total().abs())?;
+        }
+
+        write!(f, " (Total = {} )", self.total())?;
+        Ok(())
     }
 }

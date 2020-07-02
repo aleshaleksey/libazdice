@@ -1,7 +1,7 @@
 // This is a mini-program which demonstrates the use of `libazdice`.
 extern crate libazdice;
-use std::io;
 use libazdice::parse;
+use std::io;
 
 fn main() {
     loop {
@@ -22,11 +22,17 @@ fn main() {
         let dice_bag = match parse::parse(input.clone()) {
             Ok(db) => db,
             Err(e) => {
-                println!("Could not parse input to dice:{:?}",e);
+                println!("Could not parse input to dice:{:?}", e);
                 continue;
             }
         };
-
-        println!("You rolled {}, and got {}.\n",input,dice_bag.roll().total());
+        println!("Dicebag: {}", dice_bag);
+        let roll = dice_bag.roll();
+        println!(
+            "You rolled {}, and got {}.\n",
+            input,
+            roll.total()
+        );
+        println!("Result: {}", roll);
     }
 }

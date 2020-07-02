@@ -14,6 +14,7 @@
 #![allow(clippy::wrong_self_convention)]
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::needless_range_loop)]
+#![allow(clippy::comparison_chain)]
 
 pub mod distribution;
 pub mod externalise;

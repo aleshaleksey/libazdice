@@ -74,7 +74,7 @@ Auxillary groups can come in any order after the main group.
 
 --`rr'N'` : Represents the reroll of N dice in the dice group. (eg `10d4rr5`). Requires a `ab'N'` or `bl'N'` group. One per dice group is allowed (eg `10d4rr5bl2` (more common) or `10d4rr2ab3` (uncommon).
 
---`ab'N'` : The threshold above which a reroll is to be triggered if `rr` is found (see above, eg `ab5`). One per dice group is supported. 
+--`ab'N'` : The threshold above which a reroll is to be triggered if `rr` is found (see above, eg `ab5`). One per dice group is supported.
 
 --`bl'N'` : The threshold below which a reroll is to be triggered if `rr` is found (see above, eg `bl3`). One per dice group is supported.
 
@@ -86,7 +86,7 @@ Auxillary groups can come in any order after the main group.
 
 --`dh'N'` / `kl'M'` : Drops N of the highest dice, or keeps (total number -M). One per dice group is supported. Can be used in conjuction with `dl` / `kh`.
 
-(NB3: "drop" and "keep" clauses should in theory be handled differently when used in conjunction (eg if you have a group of dice with 15 dice and you want to keep the 10 lowest *and* the 10 highest, then in theory you need to keep all of them, but this library handles it the same as drop clauses). 
+(NB3: "drop" and "keep" clauses should in theory be handled differently when used in conjunction (eg if you have a group of dice with 15 dice and you want to keep the 10 lowest *and* the 10 highest, then in theory you need to keep all of them, but this library handles it the same as drop clauses).
 
 **Final group**
 This group must be used at the end of a dice group, or an error will be triggered.
@@ -116,11 +116,11 @@ __TODO__
 
 - Write destructors for C/C++ api functions.
 
-- Implementation of `Display` for the pub types.
+~~ - Implementation of `Display` for the pub types.~~
 
-~~- Improve documentation.~~
+~~ - Improve documentation.~~
 
-~~- Find a better source of randomness!~~
+~~ - Find a better source of randomness!~~
 
 __Other__
 The testing ~~is currently incomplete~~ could be more extensive, so if someone finds a bug, or thinks of an essential dice roller feature that's been overlooked, please make a comment (or something)!
