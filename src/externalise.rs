@@ -40,7 +40,7 @@ pub struct ResultListRolls {
     /// A pointer to a structure containing a list of roll results (`ListRolls`).
     pub succ: *const ListRolls,
     /// A pointer to an error string.
-    pub err: *const CString,
+    pub err: *const c_char,
 }
 
 #[repr(C)]
@@ -50,7 +50,7 @@ pub struct SingleRollResult {
     /// A value representing the numerical value of a dice roll.
     pub roll: i64,
     /// A pointer to an error string.
-    pub err: *const CString,
+    pub err: *const c_char,
 }
 
 #[repr(C)]
@@ -85,7 +85,7 @@ pub struct DistributionResult {
     /// A pointer to a resulting `Distribution`.
     pub succ: *mut Distribution,
     /// A pointer to an error string.
-    pub err: *const CString,
+    pub err: *const c_char,
 }
 
 #[no_mangle]
@@ -118,7 +118,7 @@ pub unsafe extern "C" fn parse_and_generate_distribution(
     } else {
         let err = b"Invalid dice string in calling environment.".to_vec();
         let err = Box::new(CString::from_vec_unchecked(err));
-        final_result.err = Box::into_raw(err);
+        final_result.err = err.into_raw();
         return final_result;
     };
 
@@ -132,7 +132,7 @@ pub unsafe extern "C" fn parse_and_generate_distribution(
                 e
             };
             let err = Box::new(CString::from_vec_unchecked(e));
-            final_result.err = Box::into_raw(err);
+            final_result.err = err.into_raw();
             return final_result;
         }
         Ok(r) => r,
@@ -195,7 +195,7 @@ pub unsafe extern "C" fn parse_and_roll_n_times(
     } else {
         let err = b"Invalid dice string in calling environment.".to_vec();
         let err = Box::new(CString::from_vec_unchecked(err));
-        final_result.err = Box::into_raw(err);
+        final_result.err = err.into_raw();
         return final_result;
     };
 
@@ -209,7 +209,7 @@ pub unsafe extern "C" fn parse_and_roll_n_times(
                 e
             };
             let err = Box::new(CString::from_vec_unchecked(e));
-            final_result.err = Box::into_raw(err);
+            final_result.err = err.into_raw();
             return final_result;
         }
         Ok(r) => r,
@@ -268,7 +268,7 @@ pub unsafe extern "C" fn parse_and_roll(input: &*const c_char) -> SingleRollResu
     } else {
         let err = b"Invalid dice string in calling environment.".to_vec();
         let err = Box::new(CString::from_vec_unchecked(err));
-        final_result.err = Box::into_raw(err);
+        final_result.err = err.into_raw();
         return final_result;
     };
 
@@ -283,7 +283,7 @@ pub unsafe extern "C" fn parse_and_roll(input: &*const c_char) -> SingleRollResu
                 e
             };
             let err = Box::new(CString::from_vec_unchecked(e));
-            final_result.err = Box::into_raw(err);
+            final_result.err = err.into_raw();
             return final_result;
         }
         Ok(r) => r,

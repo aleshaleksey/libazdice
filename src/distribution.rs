@@ -984,7 +984,7 @@ impl DiceBag {
                     let answer = match drop {
                         // On drop lowest, drop the lowest N dice. Custom sorting is needed.
                         Drop::Lowest(n) => {
-                            answer.sort_by(|n1, n2| n2.cmp(&n1));
+                            answer.sort_by(|n1, n2| n2.cmp(n1));
                             for _ in 0..*n {
                                 answer.pop();
                             }
@@ -992,7 +992,7 @@ impl DiceBag {
                         }
                         // On highest, drop the highest N dice.
                         Drop::Highest(n) => {
-                            answer.sort();
+                            answer.sort_unstable();
                             for _ in 0..*n {
                                 answer.pop();
                             }
@@ -1000,7 +1000,7 @@ impl DiceBag {
                         }
                         // On custom, take selected dice and put in new vector.
                         Drop::Custom(v) => {
-                            answer.sort();
+                            answer.sort_unstable();
                             let mut output = Vec::with_capacity(v.len());
                             for i in v.iter() {
                                 output.push(answer[*i]);
@@ -1010,7 +1010,7 @@ impl DiceBag {
                         _ => answer,
                     };
 
-                    final_result.add_dice_result(DiceResult::new(&d, answer));
+                    final_result.add_dice_result(DiceResult::new(d, answer));
                 }
             }
         }

@@ -81,8 +81,8 @@ int main(int argc, char** argv)
             for (i=0; i<dist_res.succ -> count; i++) {
                 printf(
                     "%ld\t| %lf\n",
-                    dist_res.succ -> rolls_and_frequencies[i].value,
-                    100.0 * (double) dist_res.succ -> rolls_and_frequencies[i].frequency / (double) n_dist
+                    dist_res.succ -> rolls_and_frequency[i].value,
+                    100.0 * (double) dist_res.succ -> rolls_and_frequency[i].frequency / (double) n_dist
                 );
             }
         }
